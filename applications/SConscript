@@ -1,0 +1,24 @@
+Import('RTT_ROOT')
+Import('rtconfig')
+import os
+from building import *
+
+# get current dir path
+cwd     = GetCurrentDir()
+
+# init src and inc vars
+src     = Glob('*.c')
+path    = [cwd]
+
+# add group to IDE project
+objs    = DefineGroup('Applications', src, depend = [''], CPPPATH = path)
+
+# traversal subscript
+list = os.listdir(cwd)
+
+for d in list:
+    path = os.path.join(cwd, d)
+    if os.path.isfile(os.path.join(path, 'SConscript')):
+        objs = objs + SConscript(os.path.join(d, 'SConscript'))
+
+Return('objs')

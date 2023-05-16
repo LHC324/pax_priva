@@ -1,0 +1,34 @@
+import rtconfig
+from building import *
+
+cwd     = GetCurrentDir()
+src     = []
+path    = [cwd]
+group   = []
+
+if GetDepend(['RT_USING_PCF8563']):
+    src += ['pcf8563.c']
+    
+if GetDepend(['RT_USING_PIN']):
+    src += ['lhc_extern_io.c']
+
+# AC5 use option '--c99'
+'''
+LOCAL_CCFLAGS = ''
+
+if rtconfig.CROSS_TOOL == 'gcc':
+    LOCAL_CCFLAGS += ' -std=c99'
+elif rtconfig.CROSS_TOOL == 'keil':
+    # Using ARM Compiler Version 5
+    LOCAL_CCFLAGS += ' --c99'
+    LOCAL_CCFLAGS += ' --no-multibyte-chars'
+    # Using ARM Compiler Version 6
+    # pass
+
+group = DefineGroup('lhc_module', src, depend = [''], CPPPATH = path, LOCAL_CCFLAGS = LOCAL_CCFLAGS)
+'''
+
+if src:
+    group   = DefineGroup('lhc_module', src, depend = [''], CPPPATH = path)
+
+Return('group')
