@@ -86,6 +86,20 @@ static void MX_TIM8_Init(void);
 
 /* Private user code ---------------------------------------------------------*/
 /* USER CODE BEGIN 0 */
+/**
+ * @brief This function handles DMA1 channel1 global interrupt.
+ */
+void DMA1_Channel1_IRQHandler(void)
+{
+  /* USER CODE BEGIN DMA1_Channel1_IRQn 0 */
+
+  /* USER CODE END DMA1_Channel1_IRQn 0 */
+  HAL_DMA_IRQHandler(&hdma_adc1);
+  /* USER CODE BEGIN DMA1_Channel1_IRQn 1 */
+
+  /* USER CODE END DMA1_Channel1_IRQn 1 */
+}
+
 static int rt_stm32_hal_init(void)
 {
   HAL_Init();
@@ -112,10 +126,10 @@ static int rt_stm32_hal_init(void)
   // HAL_GPIO_WritePin(WIFI_RESET_GPIO_Port, WIFI_RESET_Pin, GPIO_PIN_SET);
   return 0;
 }
-/*在内核对象中初始�?????????????:https://blog.csdn.net/yang1111111112/article/details/93982354*/
+/*在内核对象中初始�?????????????????:https://blog.csdn.net/yang1111111112/article/details/93982354*/
 // INIT_COMPONENT_EXPORT(rt_stm32_hal_init);
 // INIT_ENV_EXPORT(rt_stm32_hal_init);
-INIT_DEVICE_EXPORT(rt_stm32_hal_init);
+INIT_BOARD_EXPORT(rt_stm32_hal_init);
 /* USER CODE END 0 */
 
 /**
@@ -654,8 +668,11 @@ static void MX_GPIO_Init(void)
   __HAL_RCC_GPIOD_CLK_ENABLE();
 
   /*Configure GPIO pin Output Level */
-  HAL_GPIO_WritePin(GPIOE, WDI_Pin|Q22_Pin|Q21_Pin|Q20_Pin
-                          |Q19_Pin, GPIO_PIN_RESET);
+  HAL_GPIO_WritePin(GPIOC, RUN_LED_Pin|Q6_Pin|Q5_Pin|Q4_Pin
+                          |Q3_Pin, GPIO_PIN_RESET);
+
+  /*Configure GPIO pin Output Level */
+  HAL_GPIO_WritePin(GPIOE, Q22_Pin|Q21_Pin|Q20_Pin|Q19_Pin, GPIO_PIN_RESET);
 
   /*Configure GPIO pin Output Level */
   HAL_GPIO_WritePin(GPIOB, Q18_Pin|Q17_Pin|Q16_Pin|Q15_Pin
@@ -664,10 +681,7 @@ static void MX_GPIO_Init(void)
   /*Configure GPIO pin Output Level */
   HAL_GPIO_WritePin(GPIOD, Q14_Pin|Q13_Pin|Q12_Pin|Q11_Pin
                           |Q10_Pin|Q9_Pin|Q8_Pin|Q7_Pin
-                          |LORA_WAKEUP_Pin, GPIO_PIN_RESET);
-
-  /*Configure GPIO pin Output Level */
-  HAL_GPIO_WritePin(GPIOC, Q6_Pin|Q5_Pin|Q4_Pin|Q3_Pin, GPIO_PIN_RESET);
+                          |WDI_Pin|LORA_WAKEUP_Pin, GPIO_PIN_RESET);
 
   /*Configure GPIO pin Output Level */
   HAL_GPIO_WritePin(GPIOA, Q2_Pin|Q1_Pin|Q0_Pin, GPIO_PIN_RESET);
@@ -689,10 +703,15 @@ static void MX_GPIO_Init(void)
   GPIO_InitStruct.Pull = GPIO_NOPULL;
   HAL_GPIO_Init(GPIOE, &GPIO_InitStruct);
 
-  /*Configure GPIO pins : WDI_Pin Q22_Pin Q21_Pin Q20_Pin
-                           Q19_Pin */
-  GPIO_InitStruct.Pin = WDI_Pin|Q22_Pin|Q21_Pin|Q20_Pin
-                          |Q19_Pin;
+  /*Configure GPIO pin : RUN_LED_Pin */
+  GPIO_InitStruct.Pin = RUN_LED_Pin;
+  GPIO_InitStruct.Mode = GPIO_MODE_OUTPUT_PP;
+  GPIO_InitStruct.Pull = GPIO_NOPULL;
+  GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_LOW;
+  HAL_GPIO_Init(RUN_LED_GPIO_Port, &GPIO_InitStruct);
+
+  /*Configure GPIO pins : Q22_Pin Q21_Pin Q20_Pin Q19_Pin */
+  GPIO_InitStruct.Pin = Q22_Pin|Q21_Pin|Q20_Pin|Q19_Pin;
   GPIO_InitStruct.Mode = GPIO_MODE_OUTPUT_PP;
   GPIO_InitStruct.Pull = GPIO_NOPULL;
   GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_LOW;
@@ -742,6 +761,13 @@ static void MX_GPIO_Init(void)
   GPIO_InitStruct.Mode = GPIO_MODE_INPUT;
   GPIO_InitStruct.Pull = GPIO_NOPULL;
   HAL_GPIO_Init(GPIOD, &GPIO_InitStruct);
+
+  /*Configure GPIO pin : WDI_Pin */
+  GPIO_InitStruct.Pin = WDI_Pin;
+  GPIO_InitStruct.Mode = GPIO_MODE_OUTPUT_PP;
+  GPIO_InitStruct.Pull = GPIO_NOPULL;
+  GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_LOW;
+  HAL_GPIO_Init(WDI_GPIO_Port, &GPIO_InitStruct);
 
   /*Configure GPIO pins : LORA_RELOAD_Pin ETH_CFG_Pin ETH_RST_Pin ETH_485EN_Pin */
   GPIO_InitStruct.Pin = LORA_RELOAD_Pin|ETH_CFG_Pin|ETH_RST_Pin|ETH_485EN_Pin;

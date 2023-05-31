@@ -89,6 +89,13 @@ extern "C"
 /*Linux时间戳*/
 #define TOOOL_USING_LINUX_STAMP 0
 
+// <o>Enable AC signal input (compatible with DC)
+//  <i>Default: 1
+//  <0=> DisEable
+//  <1=> Eable
+/*使用AC信号输入模式*/
+#define TOOL_USING_AC_DI 1
+
 #if (TOOL_USING_RTOS == 1)
 #include "cmsis_os.h"
 #define release_semaphore osSemaphoreRelease
@@ -113,6 +120,9 @@ extern "C"
 #define __RESET_FLAG(__OBJECT, __BIT) (((__OBJECT) &= ~(1U << (__BIT))))
 #define __GET_FLAG(__OBJECT, __BIT) (((__OBJECT) & (1U << (__BIT))))
 
+#define DIRC_COIL  0x00
+#define INDIRC_COIL 0x80
+
 #define CURRENT_UPPER 16.0F
 #define CURRENT_LOWER 4.0F
 #define PI acosf(-1.0F)
@@ -129,6 +139,7 @@ extern "C"
                                                  (asinf(((__H) - (__CR)) / (__CR)) + \
                                                   ((__H) - (__CR)) / ((__CR) * (__CR)) * sqrtf(((__CR) * (__CR)) - powf(((__H) - (__CR)), 2.0F)) + PI / 2.0F)))
 
+#define Get_Tart_time(_h, _m, _s) ((uint32_t)(_h) << 16U | (_m) << 8U | (_s))
     struct resource_info
     {
         unsigned short num;
@@ -237,6 +248,21 @@ extern "C"
         unsigned short pin;
         // unsigned char PinState;
     } Gpiox_info;
+
+    typedef struct
+    {
+        char gpio_name[5U];
+        Gpiox_info gpio;
+        uint32_t count;
+    } di_input_group;
+
+    typedef struct
+    {
+        di_input_group *group;
+        uint16_t group_size;
+        uint16_t site, bits;
+        void *data;
+    } di_input __attribute__((aligned(4)));
 
     typedef enum
     {
@@ -351,7 +377,9 @@ extern float sidefilter(SideParm *side, float input);
     typedef struct Uart_HandleTypeDef UartHandle;
     struct Uart_HandleTypeDef
     {
+#if (TOOL_USING_RTOS == 1)
         void *huart, *phdma;
+#endif
         Uart_Data_HandleTypeDef rx, tx;
 #if (!TOOL_USING_RTOS)
         bool recive_finish_flag;

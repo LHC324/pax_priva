@@ -1,6 +1,7 @@
 #include "lhc_lora.h"
 #include "main.h"
 #include "lhc_modbus_port.h"
+#include <rtdevice.h>
 
 #ifdef DBG_TAG
 #undef DBG_TAG
@@ -53,16 +54,22 @@ static void Create_LoraObject(pLoraHandle *pl, pLoraHandle ps)
                               : lhc_lora_free((*pl)->Schedule.Block);
 #elif (TOOL_USING_RTOS == 2)
         lhc_lora_list_init(&(*pl)->Schedule.Ready.list);
+        (*pl)->Schedule.Ready.cur_index = &(*pl)->Schedule.Ready.list;
         lhc_lora_list_init(&(*pl)->Schedule.Block.list);
+        (*pl)->Schedule.Block.cur_index = &(*pl)->Schedule.Block.list;
 #endif
         (*pl)->Schedule.First_Flag = false;
         (*pl)->Schedule.Period = 0;
         (*pl)->Schedule.Event_Id = 0;
         lhc_lora_memcpy(&(*pl)->Uart, &ps->Uart, sizeof(ps->Uart));
         (*pl)->Uart.tx.pbuf = (uint8_t *)lhc_lora_malloc(ps->Uart.tx.size);
-        (*pl)->Uart.tx.pbuf ? (void)lhc_lora_memset((*pl)->Uart.tx.pbuf, 0, ps->Uart.tx.size) : lhc_lora_free((*pl)->Uart.tx.pbuf);
+        (*pl)->Uart.tx.pbuf
+            ? (void)lhc_lora_memset((*pl)->Uart.tx.pbuf, 0, ps->Uart.tx.size)
+            : lhc_lora_free((*pl)->Uart.tx.pbuf);
         (*pl)->Uart.rx.pbuf = (uint8_t *)lhc_lora_malloc(ps->Uart.rx.size);
-        (*pl)->Uart.rx.pbuf ? (void)lhc_lora_memset((*pl)->Uart.rx.pbuf, 0, ps->Uart.rx.size) : lhc_lora_free((*pl)->Uart.tx.pbuf);
+        (*pl)->Uart.rx.pbuf
+            ? (void)lhc_lora_memset((*pl)->Uart.rx.pbuf, 0, ps->Uart.rx.size)
+            : lhc_lora_free((*pl)->Uart.tx.pbuf);
         // (*pl)->Uart.tx.size = ps->Uart.tx.size;
         // (*pl)->Uart.tx.count = 0;
         // (*pl)->Uart.rx.size = ps->Uart.rx.size;
@@ -99,37 +106,6 @@ void Free_LoraObject(pLoraHandle *pl)
 }
 
 /**
- * @brief	Lora模块初始化
- * @details
- * @param	None
- * @retval	None
- */
-void MX_Lora_Init(void)
-{
-    extern UART_HandleTypeDef huart2;
-    extern DMA_HandleTypeDef hdma_usart2_rx;
-
-    Lora_Handle lora = {
-        .Check = {
-            .OverTimes = SUSPEND_TIMES,
-        },
-        .Schedule = {
-            .Period = 0,
-        },
-        .Uart = {
-            .huart = &huart2,
-            .phdma = &hdma_usart2_rx,
-            .tx.count = 0,
-            .tx.size = LORA_TX_BUF_SIZE,
-            .rx.count = 0,
-            .rx.size = LORA_RX_BUF_SIZE,
-        },
-        .pHandle = Lte_Modbus_Object,
-    };
-    Create_LoraObject(&Lora_Object, &lora);
-}
-
-/**
  * @brief	获取Lora模块当前是否空闲
  * @details	无线发送数据时拉低，用于指示发送繁忙状态
  * @param	None
@@ -137,8 +113,7 @@ void MX_Lora_Init(void)
  */
 bool inline Get_Lora_Status(pLoraHandle pl)
 {
-    // return ((bool)HAL_GPIO_ReadPin(LORA_STATUS_GPIO_Port, LORA_STATUS_Pin));
-    return 0;
+    return ((bool)HAL_GPIO_ReadPin(LORA_STATUS_GPIO_Port, LORA_STATUS_Pin));
 }
 
 
@@ -165,8 +140,8 @@ lhc_loara_list_item_t *Find_ListItem(lhc_lora_list_t *list, unsigned int data)
 
     rt_list_for_each(pos, &(list->list))
     {
-        if (*&((lhc_lora_list_t *)pos)->id == data) // 仅仅适用于list是结构体首个成员
-            return ((lhc_lora_list_t *)pos);
+        if (*&((lhc_loara_list_item_t *)pos)->id == data) // 仅仅适用于list是结构体首个成员
+            return ((lhc_loara_list_item_t *)pos);
     }
 #endif
 
@@ -213,7 +188,7 @@ void Add_ListItem(lhc_lora_list_t *list, unsigned int data)
  */
 unsigned int Remove_ListItem(lhc_lora_list_t *list, unsigned int data)
 {
-    unsigned int items;
+    unsigned int items = 0;
 
 #if (TOOL_USING_RTOS == 1) 
     if (!listCURRENT_LIST_LENGTH(list))
@@ -241,11 +216,15 @@ unsigned int Remove_ListItem(lhc_lora_list_t *list, unsigned int data)
         rt_list_remove(&node->list);
         /*释放链表节点*/
         lhc_lora_free(node);
-        return items;
+
+        items = node->id;
+#if LORA_USING_DEBUG
+        LORA_DEBUG("list[%p] remove: %d.\r\n", &node->list, node->id);
+#endif
     }
 #endif
 
-    return 0;
+    return items;
 }
 
 /**
@@ -284,12 +263,12 @@ lhc_loara_list_item_t *Get_OneDevice(pLoraHandle pl, lhc_lora_list_t *list)
     if (!rt_list_len(&(list->list)))
         return NULL;
 
-    pl->Schedule.temp_node = pl->Schedule.temp_node->next;
+    if (list->cur_index->next == &list->list)
+        list->cur_index = list->cur_index->next->next;
+    else
+        list->cur_index = list->cur_index->next;
 
-    if (pl->Schedule.temp_node->next == &list->list)
-        pl->Schedule.temp_node = pl->Schedule.temp_node->next->next;
-
-    return ((lhc_loara_list_item_t *)pl->Schedule.temp_node);
+    return ((lhc_loara_list_item_t *)list->cur_index);
 #endif
 
     return NULL;
@@ -445,7 +424,7 @@ void Lora_Recive_Poll(pLoraHandle pl)
     if (pd->pPools->InputCoils[LORA_STATE_OFFSET + event_id] != 0x01)
     {
         pd->pPools->InputCoils[LORA_STATE_OFFSET + event_id] = 0x01;
-        *(bool *)pd->Slave.pHandle = false; // 考虑线程会被抢占，导致状态未更新
+        // *(bool *)pd->Slave.pHandle = false; // 考虑线程会被抢占，导致状态未更新
     }
     pl->Check.Schedule_counts = 0;
 
@@ -648,11 +627,17 @@ void Lora_Send(pLoraHandle pl, uint8_t *pdata, uint16_t size)
 {
     if (NULL == pl)
         return;
+
+#if (TOOL_USING_RTOS == 1)
     HAL_UART_Transmit_DMA(pl->Uart.huart, pdata, size);
     while (__HAL_UART_GET_FLAG((UART_HandleTypeDef *)pl->Uart.huart,
                                UART_FLAG_TC) == RESET)
     {
     }
+#elif (TOOL_USING_RTOS == 2)
+    RT_ASSERT(pl->dev);
+    rt_device_write(pl->dev, 0, pdata, size);
+#endif
 }
 
 /**
@@ -664,7 +649,7 @@ void Lora_Send(pLoraHandle pl, uint8_t *pdata, uint16_t size)
 void Lora_Tansmit_Poll(pLoraHandle pl)
 {
     pModbusHandle pd = (pModbusHandle)pl->pHandle;
-    // Lora_Map *pm = NULL;
+    lhc_loara_list_item_t *p = NULL;
 
     if ((NULL == pl) || (NULL == pd) ||
 #if (TOOL_USING_RTOS == 1) 
@@ -687,6 +672,7 @@ void Lora_Tansmit_Poll(pLoraHandle pl)
         /*清除超时计数器*/
         pl->Check.Counter = 0;
         pl->Check.State = L_Wait; // 如果就绪列表为空：则阻塞在最后一号从机
+
         if (pl->Schedule.First_Flag)
         {
             /*每调度一个周期就绪列表，就检测阻塞列表中一个从机*/
@@ -699,7 +685,7 @@ void Lora_Tansmit_Poll(pLoraHandle pl)
                 pl->Schedule.Period = 0;
                 /*循环的从阻塞列表中移除一个列表项*/
 #if (TOOL_USING_RTOS == 1)
-                lhc_loara_list_item_t *p = Get_OneDevice(pl, pl->Schedule.Block);
+                p = Get_OneDevice(pl, pl->Schedule.Block);
                 if (p)
                 {
                     /*加入就绪列表*/
@@ -708,7 +694,7 @@ void Lora_Tansmit_Poll(pLoraHandle pl)
                     Remove_ListItem(pl->Schedule.Block, listGET_LIST_ITEM_VALUE(p));
                 }
 #elif (TOOL_USING_RTOS == 2)
-                lhc_loara_list_item_t *p = Get_OneDevice(pl, &pl->Schedule.Block);
+                p = Get_OneDevice(pl, &pl->Schedule.Block);
                 if (p)
                 {
                     /*加入就绪列表*/
@@ -717,7 +703,9 @@ void Lora_Tansmit_Poll(pLoraHandle pl)
                     Remove_ListItem(&pl->Schedule.Block, p->id);
                 }
 #endif
+
 #if LORA_USING_DEBUG
+#if (TOOL_USING_RTOS == 1)
                 LORA_DEBUG("\r\n\r\nblock\tindex\r\n%d\t%d\r\n",
                            listCURRENT_LIST_LENGTH(pl->Schedule.Block),
                            listGET_LIST_ITEM_VALUE(pl->Schedule.Block->pxIndex));
@@ -736,34 +724,47 @@ void Lora_Tansmit_Poll(pLoraHandle pl)
                 }
                 LORA_DEBUG("\r\nrema\tmini\r\n%u\t%u\r\n\r\n",
                            xPortGetFreeHeapSize(), xPortGetMinimumEverFreeHeapSize());
+#elif (TOOL_USING_RTOS == 2)
+                struct rt_list_node *pos;
+                lhc_loara_list_item_t *node;
+                LORA_DEBUG("\r\n\r\nblock\tindex\r\n%d\t%p\r\n",
+                           rt_list_len(&(pl->Schedule.Block.list)),
+                           pl->Schedule.Block.cur_index);
+                rt_list_for_each(pos, &(pl->Schedule.Block.list))
+                {
+                    node = (lhc_loara_list_item_t *)pos;
+                    LORA_DEBUG("%d ", node->id);
+                }
+                LORA_DEBUG("\r\n\r\nready\tindex\r\n%d\t%p\r\n",
+                           rt_list_len(&(pl->Schedule.Ready.list)),
+                           pl->Schedule.Ready.cur_index);
+                rt_list_for_each(pos, &(pl->Schedule.Ready.list))
+                {
+                    node = (lhc_loara_list_item_t *)pos;
+                    LORA_DEBUG("%d ", node->id);
+                }
+#endif
 #endif
             }
 
 #if (TOOL_USING_RTOS == 1)
-            lhc_loara_list_item_t *p = Get_OneDevice(pl, pl->Schedule.Ready);
+            p = Get_OneDevice(pl, pl->Schedule.Ready);
             if (p)
                 pl->Schedule.Event_Id = (uint8_t)listGET_LIST_ITEM_VALUE(p);
 #elif (TOOL_USING_RTOS == 2)
-            lhc_loara_list_item_t *p = Get_OneDevice(pl, &pl->Schedule.Ready);
+            p = Get_OneDevice(pl, &pl->Schedule.Ready);
             if (p)
                 pl->Schedule.Event_Id = (uint8_t)p->id;
 #endif
 
 #if LORA_USING_DEBUG
-            LORA_DEBUG("@warning: [%d] event schedule.\r\n", pl->Schedule.Event_Id);
+            LORA_DEBUG("\r\n@warning: [%d] event schedule.\r\n", pl->Schedule.Event_Id);
 #endif
         }
         /*禁止接收引脚*/
         if (pl->Cs.port)
             HAL_GPIO_WritePin(pl->Cs.port, pl->Cs.pin, GPIO_PIN_SET);
-        /*去掉首次扫描完毕的第一个静默周期*/
-        // pl->Schedule.Event_Id != LORA_NULL_ID ?
-        //     Lora_Make_Frame(pl, pm),
-        //     pm->Check.State = L_Wait : false;
-
-        // if (pl->Schedule.Event_Id != LORA_NULL_ID)
-        //     Lora_Make_Frame(pl, pm);
-
+  
         Lora_Make_Frame(pl);
 
         /*使能接收引脚*/
@@ -809,39 +810,39 @@ void Lora_Tansmit_Poll(pLoraHandle pl)
         LORA_DEBUG("@warning: [%d] slave timeout.\r\n\r\n", pl->Schedule.Event_Id);
 #endif
         /*更新从机离线状态*/
-        if (pd->pPools->InputCoils[actual_site] != 0x00)
-        {
-            pd->pPools->InputCoils[actual_site] = 0x00;
-            *(bool *)pd->Slave.pHandle = false;
-        }
-        /*连续三轮调度均检测不到目标从机响应：则认为直接离线*/
-        if (++pl->Check.Schedule_counts > SCHEDULING_COUNTS)
-        {
-            pl->Check.Schedule_counts = 0;
-            //            /*对于输入型从机：离线时清除输入寄存器*/
-            //            if (Lora_Get_Slave_Type(pl, (pl->Schedule.Event_Id + 1U)) == Lora_Di_Slave)
-            //            {
-            //                lhc_lora_memset(&pd->pPools->InputCoils[pl->Schedule.Event_Id * DIGITAL_INPUT_NUMBERS],
-            //                       0x00, DIGITAL_INPUT_NUMBERS);
-            //            }
-            switch (Lora_Get_Slave_Type(pl, (pl->Schedule.Event_Id + 1U)))
-            {
-            case Lora_Di_Slave:
-            {
-                lhc_lora_memset(&pd->pPools->InputCoils[pl->Schedule.Event_Id * DIGITAL_INPUT_NUMBERS],
-                                0x00, DIGITAL_INPUT_NUMBERS);
-            }
-            break;
-            case Lora_Ai_Slave:
-            {
-                lhc_lora_memset(&pd->pPools->InputRegister[(pl->Schedule.Event_Id - LORA_DI_SLAVE_MAX_NUM) *
-                                                           ANALOG_INPUT_NUMBERS * 2U],
-                                0x00, ANALOG_INPUT_NUMBERS * 2U);
-            }
-            break;
-            }
-            *(bool *)pd->Slave.pHandle = false;
-        }
+        // if (pd->pPools->InputCoils[actual_site] != 0x00)
+        // {
+        //     pd->pPools->InputCoils[actual_site] = 0x00;
+        //     *(bool *)pd->Slave.pHandle = false;
+        // }
+        // /*连续三轮调度均检测不到目标从机响应：则认为直接离线*/
+        // if (++pl->Check.Schedule_counts > SCHEDULING_COUNTS)
+        // {
+        //     pl->Check.Schedule_counts = 0;
+        //     //            /*对于输入型从机：离线时清除输入寄存器*/
+        //     //            if (Lora_Get_Slave_Type(pl, (pl->Schedule.Event_Id + 1U)) == Lora_Di_Slave)
+        //     //            {
+        //     //                lhc_lora_memset(&pd->pPools->InputCoils[pl->Schedule.Event_Id * DIGITAL_INPUT_NUMBERS],
+        //     //                       0x00, DIGITAL_INPUT_NUMBERS);
+        //     //            }
+        //     switch (Lora_Get_Slave_Type(pl, (pl->Schedule.Event_Id + 1U)))
+        //     {
+        //     case Lora_Di_Slave:
+        //     {
+        //         lhc_lora_memset(&pd->pPools->InputCoils[pl->Schedule.Event_Id * DIGITAL_INPUT_NUMBERS],
+        //                         0x00, DIGITAL_INPUT_NUMBERS);
+        //     }
+        //     break;
+        //     case Lora_Ai_Slave:
+        //     {
+        //         lhc_lora_memset(&pd->pPools->InputRegister[(pl->Schedule.Event_Id - LORA_DI_SLAVE_MAX_NUM) *
+        //                                                    ANALOG_INPUT_NUMBERS * 2U],
+        //                         0x00, ANALOG_INPUT_NUMBERS * 2U);
+        //     }
+        //     break;
+        //     }
+        //     *(bool *)pd->Slave.pHandle = false;
+        // }
 
         /*在此处递增事件，而不是在L_OK中*/
         Lora_Check_Resp(pl);
@@ -853,6 +854,118 @@ void Lora_Tansmit_Poll(pLoraHandle pl)
         break;
     }
 }
+
+/**
+ * @brief	lora 接收回调函数
+ * @details
+ * @param	dev 设备句柄
+ * @param   size 当前尺寸
+ * @retval  None
+ */
+static rt_err_t lora_rtu_rx_ind(rt_device_t dev, rt_size_t size)
+{
+    pLoraHandle pl = Lora_Object;
+
+    if (pl && pl->Uart.semaphore)
+    {
+        pl->Uart.rx.count = size;
+        rt_sem_release((rt_sem_t)pl->Uart.semaphore);
+    }
+
+    return RT_EOK;
+}
+
+/**
+ * @brief	lora 线程
+ * @details
+ * @param	parameter:线程初始参数
+ * @retval  None
+ */
+static void lora_thread_entry(void *parameter)
+{
+    pLoraHandle pl = (pLoraHandle) parameter;
+    rt_device_t p_dev = RT_NULL;
+
+    RT_ASSERT(pl);
+
+    /*确认目标串口设备存在*/
+    p_dev = rt_device_find(LHC_LORA_DEVICE_NAME);
+    if (p_dev)
+    {
+        // 记录当前设备指针
+        pl->dev = p_dev;
+        rt_device_open(p_dev, RT_DEVICE_FLAG_TX_BLOCKING | RT_DEVICE_FLAG_RX_NON_BLOCKING);
+        /*挂接目标接收中断函数*/
+        rt_device_set_rx_indicate(p_dev, lora_rtu_rx_ind);
+    }
+    else
+        rt_kprintf("@error: Target device [%s] not found.^_^\r\n", LHC_LORA_DEVICE_NAME);
+
+    for (;;)
+    {
+        /* 永久方式等待信号量*/
+        if (pl->Uart.semaphore &&
+            rt_sem_take(pl->Uart.semaphore, LORA_SCHEDULE_TIMES) == RT_EOK)
+        {
+            rt_device_read(p_dev, 0, pl->Uart.rx.pbuf, pl->Uart.rx.count);
+            pl->Lora_Recive_Poll(pl);
+            LOG_D("lora recive a data.");
+        }
+        else
+            pl->Lora_Transmit_Poll(pl);
+    }
+}
+
+/**
+ * @brief	Lora模块初始化
+ * @details
+ * @param	None
+ * @retval	None
+ */
+void rt_lora_init(void)
+{
+#if (TOOL_USING_RTOS == 1)
+    extern UART_HandleTypeDef huart2;
+    extern DMA_HandleTypeDef hdma_usart2_rx;
+#endif
+    rt_sem_t lhc_lora_sem = rt_sem_create("lora_sem", 0, RT_IPC_FLAG_PRIO);
+
+    RT_ASSERT(lhc_lora_sem);
+
+    Lora_Handle lora = {
+        .Check = {
+            .OverTimes = SUSPEND_TIMES,
+        },
+        .Schedule = {
+            .Period = 0,
+        },
+        .Uart = {
+#if (TOOL_USING_RTOS == 1)
+            .huart = &huart2,
+            .phdma = &hdma_usart2_rx,
+#endif
+            .semaphore = lhc_lora_sem,
+            .tx.count = 0,
+            .tx.size = LORA_TX_BUF_SIZE,
+            .rx.count = 0,
+            .rx.size = LORA_RX_BUF_SIZE,
+        },
+        .pHandle = share_lhc_modbus,
+    };
+    Create_LoraObject(&Lora_Object, &lora);
+
+    rt_thread_t tid = rt_thread_create(
+        "lora",
+        lora_thread_entry,
+        Lora_Object,
+        2048, 0x0A, 20);
+
+    RT_ASSERT(tid != RT_NULL);
+
+    rt_thread_startup(tid);
+}
+INIT_ENV_EXPORT(rt_lora_init);
+
 
 #ifdef RT_USING_FINSH
 #include <finsh.h>

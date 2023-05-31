@@ -103,7 +103,7 @@ extern "C"
 
 	struct Modbus_HandleTypeDef
 	{
-#if (LHC_MODBUS_RTOS == 2U)
+#if (LHC_MODBUS_USING_RTOS == 2U)
 		/*对于rt thread版本，增加一个设备描述指针*/
 		// char dev_name[32U];
 		rt_device_t dev, old_console;
@@ -112,7 +112,9 @@ extern "C"
 		uint8_t code;
 		lhc_modbus_type type;
 		void (*Mod_CallBack)(pModbusHandle, Function_Code);
+#if (LHC_DWIN_USING_RTOS == 1U)
 		void (*Mod_Recive)(void *);
+#endif
 		void (*Mod_Poll)(pModbusHandle);
 		void (*Mod_Transmit)(pModbusHandle, enum Using_Crc);
 #if defined(LHC_MODBUS_USING_MASTER)
@@ -120,7 +122,7 @@ extern "C"
 		void (*Mod_Request)(pModbusHandle);
 #endif
 		bool (*Mod_Operatex)(pModbusHandle, Regsiter_Type, Regsiter_Operate, uint16_t, uint8_t *, uint8_t);
-#if (LHC_MODBUS_RTOS)
+#if (LHC_MODBUS_USING_RTOS)
 		void (*Mod_Lock)(void);
 		void (*Mod_Unlock)(void);
 #endif

@@ -9,11 +9,11 @@
 #ifdef DBG_TAG
 #undef DBG_TAG
 #endif
-#define DBG_TAG "user_at"
+#define DBG_TAG "user.at"
 #define DBG_LVL DBG_LOG
 #include <rtdbg.h>
 
-#define AT_MOUDLE_MAX 2
+#define AT_MOUDLE_MAX 3
 
 typedef struct
 {
@@ -63,28 +63,25 @@ typedef struct
 } at_module;
 typedef at_module *at_module_t;
 
-
-// static at_cmd at_table[] = {
-//     {.psend = "+++", .precv = "a"},
-//     {.psend = "a", .precv = "+OK"},
-//     {.psend = "AT+Z", .event = at_restart},
-//     {.psend = "AT+ENTM", .event = at_restart},
-//     {.psend = "AT+UART", .event = at_get_uart_param},
-//     {.psend = "AT+NTPTM", .event = at_get_ntp_time},
-// };
-
 static void at_restart(void *resp, void *other);
 static void at_get_uart_param(void *resp, void *other);
 static void at_get_ntp_time(void *resp, void *other);
 
-static at_cmd _4G_table[] = {
+static at_cmd _eth_table[] = {
     {.psend = "AT+Z", .event = at_restart},
     {.psend = "AT+ENTM", .event = at_restart},
     {.psend = "AT+UART", .event = at_get_uart_param},
     {.psend = "AT+NTPTM", .event = at_get_ntp_time},
 };
 
-static at_cmd _wifi_table[] = {
+static at_cmd _lora_table[] = {
+    {.psend = "AT+Z", .event = at_restart},
+    {.psend = "AT+ENTM", .event = at_restart},
+    {.psend = "AT+UART", .event = at_get_uart_param},
+    {.psend = "AT+NTPTM", .event = at_get_ntp_time},
+};
+
+static at_cmd _4G_table[] = {
     {.psend = "AT+Z", .event = at_restart},
     {.psend = "AT+ENTM", .event = at_restart},
     {.psend = "AT+UART", .event = at_get_uart_param},
@@ -94,20 +91,28 @@ static at_cmd _wifi_table[] = {
 at_module at_group[AT_MOUDLE_MAX] = {
     {
         .cmd = {
-            .table = _4G_table,
-            .size = sizeof(_4G_table) / sizeof(_4G_table[0]),
+            .table = _eth_table,
+            .size = sizeof(_eth_table) / sizeof(_eth_table[0]),
+        },
+        .dev_name = "uart3",
+        .recv_bufsz = 128U,
+    }, // eth
+    {
+        .cmd = {
+            .table = _lora_table,
+            .size = sizeof(_lora_table) / sizeof(_lora_table[0]),
         },
         .dev_name = "uart2",
         .recv_bufsz = 128U,
-    }, // 4G
+    }, // lora
     {
         .cmd = {
-            .table = _wifi_table,
-            .size = sizeof(_wifi_table) / sizeof(_wifi_table[0]),
+            .table = _4G_table,
+            .size = sizeof(_4G_table) / sizeof(_4G_table[0]),
         },
-        .dev_name = "uart5",
+        .dev_name = "uart4",
         .recv_bufsz = 128U,
-    }, // wifi
+    }, // 4G
 };
 
 /**
@@ -381,6 +386,48 @@ void at_fsm(char *at_name)
     break;
     }
 }
+
+/**
+ * @brief   at状态机线程
+ * @details
+ * @param	parameter:线程初始参数
+ * @retval  None
+ */
+void at_fsm_thread_entry(void *parameter)
+{
+    at_module_init();
+    extern rt_sem_t console_sem;
+    rt_sem_release(console_sem); // 释放控制台
+
+    for (;;)
+    {
+        extern void at_fsm(char *at_name);
+        at_fsm("uart2"); // lora
+        at_fsm("uart3"); // eth
+        at_fsm("uart4"); // lte
+    }
+}
+
+/**
+ * @brief	at模组初始化
+ * @details
+ * @param	None
+ * @retval  none
+ */
+static int at_init(void)
+{
+    rt_thread_t tid = rt_thread_create(
+        "at_fsm",
+        at_fsm_thread_entry,
+        RT_NULL,
+        2048, 0x12, 20);
+
+    RT_ASSERT(tid != RT_NULL);
+
+    rt_thread_startup(tid);
+    return (RT_EOK);
+}
+INIT_COMPONENT_EXPORT(at_init);
 
 #ifdef FINSH_USING_MSH
 #include <finsh.h>

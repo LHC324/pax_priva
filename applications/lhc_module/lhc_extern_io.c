@@ -17,7 +17,7 @@
 
 #ifdef DBG_TAG
 #undef DBG_TAG
-#define DBG_TAG "extern_io"
+#define DBG_TAG "extern.io"
 #endif
 #define DBG_LVL DBG_LOG
 
@@ -75,7 +75,199 @@ static unsigned int get_adc_value(const unsigned int channel)
 
 #if defined(LHC_MODBUS_USING_INPUT_COIL)
 
-static Gpiox_info di_gpio[] = {0};
+#if (!TOOL_USING_AC_DI)
+
+static Gpiox_info di_gpio[] = {
+    {DI0_GPIO_Port, DI0_Pin},
+    {DI1_GPIO_Port, DI1_Pin},
+    {DI2_GPIO_Port, DI2_Pin},
+    {DI3_GPIO_Port, DI3_Pin},
+    {DI4_GPIO_Port, DI4_Pin},
+    {DI5_GPIO_Port, DI5_Pin},
+};
+
+#else
+/*检测输入引脚延时*/
+#define EXTERN_INIO_CHECK_DELAY_XMS 5U
+static void di_timeout_check(di_input *pi);
+di_input extern_io_dix;
+
+/**
+ * @brief This function is called to increment  a global variable "uwTick"
+ *        used as application time base.
+ * @note In the default implementation, this variable is incremented each 1ms
+ *       in SysTick ISR.
+ * @note This function is declared as __weak to be overwritten in case of other
+ *      implementations in user file.
+ * @retval None
+ */
+// void HAL_IncTick(void)
+// {
+//     // extern __IO uint32_t uwTick;
+//     uwTick += uwTickFreq;
+//     di_timeout_check(&extern_io_dix);
+// }
+
+static void di_collect(void)
+{
+    di_timeout_check(&extern_io_dix);
+}
+
+di_input_group di_gpio[] = {
+    {   
+        "PE.1",
+        {DI0_GPIO_Port, DI0_Pin},
+        0,
+    },
+    {
+        "PE.2",
+        {DI1_GPIO_Port, DI1_Pin},
+        0,
+    },
+    {
+        "PE.3",
+        {DI2_GPIO_Port, DI2_Pin},
+        0,
+    },
+    {
+        "PE.4",
+        {DI3_GPIO_Port, DI3_Pin},
+        0,
+    },
+    {
+        "PE.5",
+        {DI4_GPIO_Port, DI4_Pin},
+        0,
+    },
+    {
+        "PE.6",
+        {DI5_GPIO_Port, DI5_Pin},
+        0,
+    },
+};
+
+di_input extern_io_dix = {
+    .group = di_gpio,
+    .group_size = sizeof(di_gpio) / sizeof(di_input_group),
+    .data = NULL,
+};
+
+/**
+ * @brief  Timer timeout detection.
+ * @param  None
+ * @retval None
+ */
+static void di_timeout_check(di_input *pi)
+{
+    uint8_t offset = 0;
+
+    RT_ASSERT(pi);
+
+    for (di_input_group *p = pi->group;
+         pi && pi->group && p < pi->group + pi->group_size; ++p, ++offset)
+    {
+        if (p->count)
+        {
+            p->count--;
+        }
+        else
+        {
+            p->count = EXTERN_INIO_CHECK_DELAY_XMS;
+
+            /*读取外部数字引脚状态:翻转光耦的输入信号*/
+            if (p->gpio.port &&
+                !HAL_GPIO_ReadPin(p->gpio.port, p->gpio.pin))
+            {
+                pi->bits |= 1U << offset;
+            }
+        }
+    }
+}
+
+/**
+ * @brief  EXTI line detection callbacks.
+ * @param  GPIO_Pin: Specifies the pins connected EXTI line
+ * @retval None
+ */
+// void HAL_GPIO_EXTI_Callback(uint16_t GPIO_Pin)
+// {
+//     di_input *pi = &extern_io_dix;
+
+//     for (di_input_group *p = pi->group;
+//          pi->group && p < pi->group + pi->group_size; ++p)
+//     {
+//         if (p->gpio.pin == GPIO_Pin)
+//         {
+//             p->count = EXTERN_INIO_CHECK_DELAY_XMS;
+//         }
+//     }
+// }
+
+/**
+ * @brief   di引脚外部中断刷新
+ * @details 被HAL_GPIO_EXTI_Callback调用
+ * @param   GPIO_Pin 引脚编号
+ * @retval  None
+ */
+// void di_pin_refresh(uint16_t GPIO_Pin)
+// {
+//     di_input *pi = &extern_io_dix;
+
+//     for (di_input_group *p = pi->group;
+//          pi->group && p < pi->group + pi->group_size; ++p)
+//     {
+//         if (p->gpio.pin == GPIO_Pin)
+//         {
+//             p->count = EXTERN_INIO_CHECK_DELAY_XMS;
+//         }
+//     }
+// }
+
+void di_pin_refresh(void *args)
+{
+    uint16_t GPIO_Pin = *(uint16_t *)args;
+    di_input *pi = &extern_io_dix;
+
+    for (di_input_group *p = pi->group;
+         pi->group && p < pi->group + pi->group_size; ++p)
+    {
+        if (p->gpio.pin == GPIO_Pin)
+        {
+            p->count = EXTERN_INIO_CHECK_DELAY_XMS;
+        }
+    }
+}
+
+#include <rtdevice.h>
+
+/**
+ * @brief   为每个di引脚挂载外部中断
+ * @details 被HAL_GPIO_EXTI_Callback调用(不破坏rtt gpio_drv源码)
+ * @param   None
+ * @retval  None
+ */
+static void extern_io_init_di(void)
+{
+    rt_int32_t pin_num;
+
+    /* 绑定中断，下降沿模式，回调函数名为di_pin_refresh */
+    for (di_input_group *pi = di_gpio;
+         pi < di_gpio + sizeof(di_gpio) / sizeof(di_gpio[0]);
+         ++pi)
+    {
+        pin_num = rt_pin_get(pi->gpio_name);
+        rt_pin_attach_irq(pin_num, PIN_IRQ_MODE_FALLING, di_pin_refresh, &pi->gpio.pin);
+        /* 使能中断 */
+        rt_pin_irq_enable(pin_num, PIN_IRQ_ENABLE);
+    }
+}
+
+#endif
+
+#ifdef EXTERN_IO_DI_MAX
+#undef EXTERN_IO_DI_MAX
+#define EXTERN_IO_DI_MAX (sizeof(di_gpio) / sizeof(di_gpio[0]))
+#endif
 
 /**
  * @brief   外部数字量输入处理
@@ -89,18 +281,19 @@ int extern_io_read_di(void *modbus,
                       int flag)
 {
     RT_ASSERT(modbus);
-    RT_ASSERT(num  <= EXTERN_IO_DI_MAX);
+    RT_ASSERT(num <= EXTERN_IO_DI_MAX);
 
     modbus_t pd = (modbus_t)modbus;
     unsigned char wbits[EXTERN_IO_DI_MAX], *bit = wbits;
+
+    lhc_tool_memset(wbits, 0x00, sizeof(wbits));
+
+#if (!TOOL_USING_AC_DI)
     Gpiox_info *pi = di_gpio;
-
-     lhc_tool_memset(wbits, 0x00, sizeof(wbits));
-
-     for (; pi < di_gpio + sizeof(di_gpio) / sizeof(Gpiox_info),
-                     bit < wbits + sizeof(wbits) / sizeof(wbits[0]);
-          ++pi, ++bit)
-     {
+    for (; pi < di_gpio + sizeof(di_gpio) / sizeof(Gpiox_info),
+           bit < wbits + sizeof(wbits) / sizeof(wbits[0]);
+         ++pi, ++bit)
+    {
         /*读取外部数字引脚状态:翻转光耦的输入信号*/
         if (pi->port)
         {
@@ -111,14 +304,46 @@ int extern_io_read_di(void *modbus,
         }
         else
             return -1;
-     }
+    }
+#else
+    di_input *pi = &extern_io_dix;
+    for (uint8_t i = 0; i < EXTERN_IO_DI_MAX; ++i)
+    {
+        wbits[i] = (pi->bits >> i) & 0x01;
+    }
+    pi->bits = 0; // 清空本次结果
+#endif
 
-     return (pd->Mod_Operatex(pd, InputCoil, lhc_modbus_write, addr, wbits, num) ? 0 : -1);
+    return (pd->Mod_Operatex(pd, InputCoil, lhc_modbus_write, addr, wbits, num) ? 0 : -1);
 }
 #endif
 
 #if defined(LHC_MODBUS_USING_COIL)
-static Gpiox_info do_gpio[] = {0};
+static Gpiox_info do_gpio[] = {
+    {Q0_GPIO_Port, Q0_Pin},
+    {Q1_GPIO_Port, Q1_Pin},
+    {Q2_GPIO_Port, Q2_Pin},
+    {Q3_GPIO_Port, Q3_Pin},
+    {Q4_GPIO_Port, Q4_Pin},
+    {Q5_GPIO_Port, Q5_Pin},
+    {Q6_GPIO_Port, Q6_Pin},
+    {Q7_GPIO_Port, Q7_Pin},
+    {Q8_GPIO_Port, Q8_Pin},
+    {Q9_GPIO_Port, Q9_Pin},
+    {Q10_GPIO_Port, Q10_Pin},
+    {Q11_GPIO_Port, Q11_Pin},
+    {Q12_GPIO_Port, Q12_Pin},
+    {Q13_GPIO_Port, Q13_Pin},
+    {Q14_GPIO_Port, Q14_Pin},
+    {Q15_GPIO_Port, Q15_Pin},
+    {Q16_GPIO_Port, Q16_Pin},
+    {Q17_GPIO_Port, Q17_Pin},
+    {Q18_GPIO_Port, Q18_Pin},
+    {Q19_GPIO_Port, Q19_Pin},
+    {Q20_GPIO_Port, Q20_Pin},
+    {Q21_GPIO_Port, Q21_Pin},
+    {Q22_GPIO_Port, Q22_Pin},
+};
 
 /**
  * @brief   数字量输出
@@ -131,6 +356,10 @@ int extern_io_write_do(void *modbus,
                        unsigned short num,
                        int flag)
 {
+#ifdef EXTERN_IO_DO_MAX
+#undef EXTERN_IO_DO_MAX
+#define EXTERN_IO_DO_MAX (sizeof(do_gpio) / sizeof(do_gpio[0]))
+#endif
     RT_ASSERT(modbus);
     RT_ASSERT(num  <= EXTERN_IO_DO_MAX);
 
@@ -151,7 +380,7 @@ int extern_io_write_do(void *modbus,
            bit < rbits + sizeof(rbits) / sizeof(rbits[0]);
          ++po, ++bit)
     {
-        if(po->port)
+        if(po->port && (!(*bit & INDIRC_COIL))) //带直接启动标识的才允许直接控制
             HAL_GPIO_WritePin((GPIO_TypeDef *)po->port, po->pin, (GPIO_PinState)*bit);
         else
             return -1;
@@ -271,6 +500,7 @@ static void output_current(Dac_HandleTypeDef *ch, float data)
                                 dac_param[ch->Channel][1]);
 
     value = data ? ((data > 20.0F) ? 0x0FFF : value) : 0U;
+    uint32_t channel = ch->Channel ? DAC_CHANNEL_2 : DAC_CHANNEL_1;
 
     HAL_DAC_SetValue((DAC_HandleTypeDef *)padc, channel,
                      DAC_ALIGN_12B_R, (value & 0x0FFF));
@@ -289,7 +519,7 @@ int extern_io_write_ao(void *modbus,
                        int flag)
 {
     RT_ASSERT(modbus);
-    RT_ASSERT(num  <= EXTERN_IO_AI_MAX);
+    RT_ASSERT(num  <= EXTERN_IO_AO_MAX);
 
     int ret = 0;
     float data[EXTERN_IO_AO_MAX * sizeof(float)];
@@ -320,6 +550,73 @@ int extern_io_write_ao(void *modbus,
 }
 #endif
 
+/**
+ * @brief	rt_thread 软件定时器回调函数
+ * @details
+ * @param	parameter:线程初始参数
+ * @retval  None
+ */
+static void timer_callback(void *parameter)
+{
+    UNUSED(parameter);
+    di_collect();
+}
+
+/**
+ * @brief	控制线程定时动作
+ * @details
+ * @param	parameter:线程初始参数
+ * @retval  None
+ */
+void extern_io_thread_entry(void *parameter)
+{
+    extern_io_init_di();
+
+    for (;;)
+    {
+        extern_io_read_di(share_lhc_modbus, 0, EXTERN_IO_DI_MAX, ex_io_di_roll);
+        extern_io_write_do(share_lhc_modbus, 0, EXTERN_IO_DO_MAX, 0);
+        extern_io_read_ai(share_lhc_modbus, 0, EXTERN_IO_AI_MAX, 0);
+        extern_io_write_ao(share_lhc_modbus, 0, EXTERN_IO_AO_MAX, 0);
+
+        rt_thread_mdelay(100);
+    }
+}
+
+/**
+ * @brief	外部io初始化
+ * @details
+ * @param	None
+ * @retval  none
+ */
+static int extern_io_init(void)
+{
+    rt_timer_t timer = RT_NULL;
+    /* 创建定时器1  周期定时器 */
+    timer = rt_timer_create(
+        "di_timer",
+        timer_callback,
+        RT_NULL,
+        1,
+        RT_TIMER_FLAG_PERIODIC);
+    /* 启动timer定时器 */
+    if (timer != RT_NULL)
+        rt_timer_start(timer);
+
+    rt_thread_t tid = rt_thread_create(
+        "extern_io",
+        extern_io_thread_entry,
+        RT_NULL,
+        2048, 0x0F, 20);
+
+    RT_ASSERT(tid != RT_NULL);
+
+    rt_thread_startup(tid);
+
+    return (RT_EOK);
+}
+INIT_ENV_EXPORT(extern_io_init);
+
 #ifdef RT_USING_FINSH
 #include <finsh.h>
 
@@ -331,7 +628,7 @@ int extern_io_write_ao(void *modbus,
  */
 static void see_di(void)
 {
-    modbus_t pd = Lte_Modbus_Object;
+    modbus_t pd = share_lhc_modbus;
     uint8_t rbits[EXTERN_IO_DI_MAX];
     lhc_tool_memset(rbits, 0x00, sizeof(rbits));
 
@@ -346,7 +643,7 @@ static void see_di(void)
 #endif
             return;
         }
-        LHC_MODBUS_DEBUG_R("\t\t\t[----digital_output_info----]\nsn\tpinx\n");
+        LHC_MODBUS_DEBUG_R("\ndigital output:\nsn\tpinx\n");
         LHC_MODBUS_DEBUG_R("--\t----\n");
         for (uint16_t i = 0; i < EXTERN_IO_DI_MAX; i++)
             LHC_MODBUS_DEBUG_R("%d\t%d\n", i, rbits[i]);
@@ -362,22 +659,23 @@ MSH_CMD_EXPORT(see_di, display digital output value.);
  */
 static void see_do(void)
 {
-    modbus_t pd = Lte_Modbus_Object;
-    uint8_t rbits[EXTERN_IO_DI_MAX];
+    modbus_t pd = share_lhc_modbus;
+    uint8_t rbits[EXTERN_IO_DO_MAX];
     lhc_tool_memset(rbits, 0x00, sizeof(rbits));
     if (pd)
     {
         if (!pd->Mod_Operatex(pd, Coil, lhc_modbus_read, SIGNAL_IO_DO_START_ADDR,
-                              rbits, EXTERN_IO_DI_MAX))
+                              rbits, EXTERN_IO_DO_MAX))
         {
 #if (LHC_MODBUS_USING_DEBUG)
             LHC_MODBUS_DEBUG_D("@error:coil read failed.");
 #endif
         }
-        LHC_MODBUS_DEBUG_R("\t\t\t[----digital_output_info----]\nsn\tpinx\n");
+        LHC_MODBUS_DEBUG_R("\ndigital output:\nsn\tpinx\n");
         LHC_MODBUS_DEBUG_R("---\t----\n");
-        for (uint16_t i = 0; i < EXTERN_IO_DI_MAX; ++i)
+        for (uint16_t i = 0; i < EXTERN_IO_DO_MAX; ++i)
             LHC_MODBUS_DEBUG_R("%d\t%d\n", i, rbits[i]);
+        // LOG_HEX("see do", 8, rbits, EXTERN_IO_DO_MAX);
     }
 }
 MSH_CMD_EXPORT(see_do, display digital output value.);
@@ -390,11 +688,11 @@ MSH_CMD_EXPORT(see_do, display digital output value.);
  */
 static void set_do(int argc, char **argv)
 {
-    modbus_t pd = Lte_Modbus_Object;
+    modbus_t pd = share_lhc_modbus;
 
     if (argc < 2)
     {
-        LHC_MODBUS_DEBUG_R("@error: Please input'set_do <(0~9) | (0/1)>.'\n");
+        LHC_MODBUS_DEBUG_R("@error: Please input'set_do <(0~maxpin) | (0/1)>.'\n");
         return;
     }
     if (argc > 3)
@@ -406,9 +704,9 @@ static void set_do(int argc, char **argv)
     uint8_t pin = (uint8_t)atoi(argv[1]);
     uint8_t state = (uint8_t)atoi(argv[2]);
 
-    if (pin >= EXTERN_IO_DI_MAX)
+    if (pin >= EXTERN_IO_DO_MAX)
     {
-        LHC_MODBUS_DEBUG_D("@error:parameter[1]%d error,please input'0~25'.\n", pin);
+        LHC_MODBUS_DEBUG_D("@error:parameter[1]%d error,please input'0~%d'.\n", pin, EXTERN_IO_DO_MAX);
         return;
     }
     if (state > 1U)
@@ -419,7 +717,7 @@ static void set_do(int argc, char **argv)
 
     if (pd)
     {
-        uint8_t start_addr = SIGNAL_IO_DI_START_ADDR + pin;
+        uint8_t start_addr = SIGNAL_IO_DO_START_ADDR + pin;
         /*写入对应寄存器*/
         if (!pd->Mod_Operatex(pd, Coil, lhc_modbus_write, start_addr, &state, 1U))
         {
@@ -431,7 +729,7 @@ static void set_do(int argc, char **argv)
     see_do();
 }
 MSH_CMD_EXPORT(set_do, set_do sample
-               : set_do<(0 ~9) | (0 / 1)>);
+               : set_do<(0 ~pinmax) | (0 / 1)>);
 
 /**
  * @brief   查看adc通道值
@@ -441,16 +739,14 @@ MSH_CMD_EXPORT(set_do, set_do sample
  */
 static void see_adc(void)
 {
-    LHC_MODBUS_DEBUG_R("\t\t\t\t[----adc_info----]\nchannel\tcur_val\ttar_val(A/V)\n");
-    LHC_MODBUS_DEBUG_R("--------\t------\t-----------\n");
-    for (uint16_t i = 0; i < EXTERN_IO_AI_MAX; ++i)
+    LHC_MODBUS_DEBUG_R("\nadc:\nchannel\tvalue\n");
+    LHC_MODBUS_DEBUG_R("-----\t------\n");
+    for (uint16_t ch = 0; ch < EXTERN_IO_AI_MAX; ++ch)
     {
         /*获取DAC值*/
-        uint32_t adc_value = get_adc_value(i);
-        float value = i < (EXTERN_IO_AI_MAX / 2U)
-                          ? Get_Target_Value(adc_value, CURRENT_CP, CURRENT_CQ)
-                          : Get_Target_Value(adc_value, VOLTAGE_CP, VOLTAGE_CQ);
-        LHC_MODBUS_DEBUG_R("%d\t%d\t%.3f\n", i, adc_value, value);
+        uint32_t adc_value = get_adc_value(ch);
+
+        LHC_MODBUS_DEBUG_R("%d\t%d\n", ch, adc_value);
     }
 }
 MSH_CMD_EXPORT(see_adc, display adc channel value.);
@@ -486,6 +782,11 @@ MSH_CMD_EXPORT(see_adc, display adc channel value.);
  */
 static void set_dac(int argc, char **argv)
 {
+    if (argc < 3)
+    {
+        LHC_MODBUS_DEBUG_R("@error:too few parameters,please input'set_dac <(0~1)|(0~4095)>.'\n");
+        return;
+    }
     if (argc > 3)
     {
         LHC_MODBUS_DEBUG_R("@error:too many parameters,please input'set_dac <(0~1)|(0~4095)>.'\n");
@@ -505,9 +806,10 @@ static void set_dac(int argc, char **argv)
     }
     LHC_MODBUS_DEBUG_R("channel[%d]= %d.\n", channel, data);
     set_dac_flag = data ? true : false;
-    // void *pHandle = &hdac;
-    // HAL_DAC_SetValue((DAC_HandleTypeDef *)pHandle, channel,
-    //                  DAC_ALIGN_12B_R, (data & 0x0FFF));
+    channel = channel ? DAC_CHANNEL_2 : DAC_CHANNEL_1;
+    void *pHandle = &hdac;
+    HAL_DAC_SetValue((DAC_HandleTypeDef *)pHandle, channel,
+                     DAC_ALIGN_12B_R, (data & 0x0FFF));
 }
 MSH_CMD_EXPORT(set_dac, set_dac sample
                : set_dac<(ch : 0 ~1) | (val : 0 ~4095)>);
@@ -520,6 +822,11 @@ MSH_CMD_EXPORT(set_dac, set_dac sample
  */
 static void set_ao(int argc, char **argv)
 {
+    if (argc < 3)
+    {
+        LHC_MODBUS_DEBUG_R("@error:too few parameters,please input'set_ao <(0~1)|(0~20)>.'\n");
+        return;
+    }
     if (argc > 3)
     {
         LHC_MODBUS_DEBUG_R("@error:too many parameters,please input'set_ao <(0~1)|(0~20)>.'\n");
@@ -539,8 +846,7 @@ static void set_ao(int argc, char **argv)
     }
     LHC_MODBUS_DEBUG_R("channel[%d]= %.3f.\n", channel, data);
     set_dac_flag = data ? true : false;
-    for (uint16_t ch = 0; ch < EXTERN_IO_AO_MAX; ch++)
-        output_current(&dac_map[ch], data);
+        output_current(&dac_map[channel], data);
 }
 MSH_CMD_EXPORT(set_ao, set_ao sample
                : set_ao<(ch : 0 ~1) | (val : 0 ~20)>);
@@ -553,7 +859,7 @@ MSH_CMD_EXPORT(set_ao, set_ao sample
  */
 static void see_dac(void)
 {
-    LHC_MODBUS_DEBUG_R("\t\t\t\t[----dac_info----]\nsn\tcp\t\tcq\n");
+    LHC_MODBUS_DEBUG_R("\ndac_info\nsn\tcp\t\tcq\n");
     LHC_MODBUS_DEBUG_R("---\t------\t------\n");
     for (uint16_t ch = 0; ch < EXTERN_IO_AO_MAX; ch++)
         LHC_MODBUS_DEBUG_R("%d\t%.3f\t\t%.3f\n", ch, dac_param[ch][0], dac_param[ch][1]);

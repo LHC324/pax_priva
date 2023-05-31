@@ -15,8 +15,8 @@ extern "C"
 #endif
 #include "lhc_dwin.h"
 
-    extern pDwinHandle Dwin_Object;
-#if (DWIN_USING_RTOS == 2)
+    extern pDwinHandle dwin_object;
+#if (LHC_DWIN_USING_RTOS == 2)
     extern int rt_dwin_init(void);
 #else
 extern void MX_DwinInit(void);

@@ -21,6 +21,18 @@ menu "On-chip Peripheral Drivers"
 	config BSP_USING_ON_CHIP_FLASH
         bool "Enable on-chip FLASH"
         default n
+
+    config BSP_USING_ONCHIP_RTC
+        bool "Enable on-chip RTC"
+        default n
+
+    config BSP_USING_USBD
+        bool "Enable usb CDC"
+        default n
+    
+    config BSP_USING_USBH
+        bool "Enable high usb"
+        default n
 		
     menuconfig BSP_USING_UART
         bool "Enable UART"

@@ -51,7 +51,7 @@ extern "C"
         clim_u_args_max,
     };
 
-    enum poto_f_vals
+    enum climate_f_vals
     {
         house_out_wet,           // 棚外雨量
         house_in_heat_0,         // 0号棚内温度
@@ -73,6 +73,10 @@ extern "C"
         // uint32_t start_time;
         // uint32_t end_time;
         uint32_t group_num;  // 风扇和窗的组数
+        uint16_t air_windos_time;   //天窗总开/合时间
+        uint16_t side_windos_time;  //侧窗总开/合时间
+        uint16_t default_air_windos_crack;     //雨量较小时的一个默认开合度
+        uint16_t default_side_windos_crack;    //雨量较小时的一个默认开合度
         struct
         {
             // uint32_t signal : 1; // 信号来源：1内部；0外部

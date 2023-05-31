@@ -955,7 +955,7 @@ static void stm32_uart_get_config(void)
     uart_config[UART4_INDEX].dma_tx = &uart4_dma_tx;
 #endif
 #endif
-    config.baud_rate = 76800; //标准485，总线速度较慢，且串口5无dma
+    // config.baud_rate = 76800; //标准485，总线速度较慢，且串口5无dma
 
 #ifdef BSP_USING_UART5
     uart_obj[UART5_INDEX].serial.config = config;

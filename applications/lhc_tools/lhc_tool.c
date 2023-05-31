@@ -15,7 +15,7 @@ const char *text_name[co_type_max + 1U] = {
     [co_type_max] = "null",
 };
 
-#if (TOOL_USING_STM32HAL)
+#if (TOOL_USING_STM32HAL && (TOOL_USING_RTOS == 1))
 /**
  * @brief  串口接收数据：DMA+空闲中断接收不定长数据
  * @param  pu 串口对象句柄

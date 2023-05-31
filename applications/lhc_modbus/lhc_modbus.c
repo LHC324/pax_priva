@@ -62,15 +62,17 @@ void create_lhc_modbus(pModbusHandle *pd, pModbusHandle ps)
     (*pd)->Mod_CallBack = ps->Mod_CallBack;
     (*pd)->Mod_Error = ps->Mod_Error;
     (*pd)->Mod_Ota = ps->Mod_Ota;
-#if (LHC_MODBUS_RTOS)
+#if (LHC_MODBUS_USING_RTOS)
     (*pd)->Mod_Lock = ps->Mod_Lock;
     (*pd)->Mod_Unlock = ps->Mod_Unlock;
 #endif
 #if (LHC_MODBUS_USING_DMA)
+#if (LHC_DWIN_USING_RTOS == 1U)
 #if (TOOL_USING_STM32HAL)
     (*pd)->Mod_Recive = (void (*)(void *))uartx_recive_handle;
 #else
     (*pd)->Mod_Recive = ps->Mod_Recive;
+#endif
 #endif
 #endif
     (*pd)->Mod_Transmit = ps->Mod_Transmit;
@@ -253,7 +255,7 @@ static void Modbus_Poll(pModbusHandle pd)
 	Lhc_Modbus_State_Code lhc_state;
 //	pSmallModbus_Operate pFunc_Group[] = {NULL, NULL, NULL, NULL};
 //    pSmallModbus_Operate *pOpt = pFunc_Group;
-#if (!LHC_MODBUS_RTOS)
+#if (!LHC_MODBUS_USING_RTOS)
     if (!pd->Uart.recive_finish_flag)
         return;
     pd->Uart.recive_finish_flag = false;
@@ -417,7 +419,7 @@ static bool Modbus_Operatex(pModbusHandle pd, Regsiter_Type reg_type, Regsiter_O
         max = 0;
         break;
     }
-#if defined(LHC_MODBUS_RTOS)
+#if defined(LHC_MODBUS_USING_RTOS)
     // taskENTER_CRITICAL();
 #endif
     if ((addr < max) && (len <= max))
@@ -441,7 +443,7 @@ static bool Modbus_Operatex(pModbusHandle pd, Regsiter_Type reg_type, Regsiter_O
         // __DSB();
         // __DMB();
     }
-#if defined(LHC_MODBUS_RTOS)
+#if defined(LHC_MODBUS_USING_RTOS)
     // taskEXIT_CRITICAL();
 #endif
 #if (LHC_MODBUS_USING_DEBUG)

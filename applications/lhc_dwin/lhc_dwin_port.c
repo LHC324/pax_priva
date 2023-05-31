@@ -18,8 +18,8 @@
 #include <rtdevice.h>
 
 // /*用户函数声明区*/
-// static void dwin_send(pDwinHandle pd);
-// static void dwin_error_handle(pDwinHandle pd, dwin_result err_code, uint8_t site, void *pdata);
+static void dwin_send(pDwinHandle pd);
+static void dwin_error_handle(pDwinHandle pd, dwin_result err_code, uint8_t site, void *pdata);
 // static void dwin_password_handle(pDwinHandle pd, uint8_t site, uint16_t addr);
 
 // static void dwin_data_enrty(pDwinHandle pd, uint8_t site, uint16_t addr);
@@ -31,54 +31,54 @@
 // static void dwin_data_handle(pDwinHandle pd, uint8_t site, uint16_t addr);
 // static void dwin_developer_mode(pDwinHandle pd, uint8_t site, uint16_t addr);
 
-// /*迪文响应线程*/
-// Event_Map Dwin_ObjMap[] = {
-//     /*dds模块参数设置*/
-//     {.addr = DWIN_SET_USER_FRE_ADDR, .upper = high_freq, .lower = 0, .event = (_dwin_func)dwin_data_enrty},
-//     {.addr = DWIN_SET_DEVE_FRE_ADDR, .upper = 12.5e6f, .lower = 0, .event = (_dwin_func)dwin_data_enrty},
-//     {.addr = DWIN_SET_FRE_REG_ADDR, .upper = 1.0F, .lower = 0, .event = (_dwin_func)dwin_data_enrty},
-//     {.addr = DWIN_SET_PHASE_ADDR, .upper = 360.0F, .lower = 0, .event = (_dwin_func)dwin_data_enrty},
-//     {.addr = DWIN_SET_PHASE_REG_ADDR, .upper = 1.0F, .lower = 0, .event = (_dwin_func)dwin_data_enrty},
-//     {.addr = DWIN_SET_RANGE_ADDR, .upper = 255.0F, .lower = 0, .event = (_dwin_func)dwin_data_enrty},
-//     {.addr = DWIN_SET_DEVE_WAVE_ADDR, .upper = ad9833_squ, .lower = 0, .event = (_dwin_func)dwin_data_enrty},
-//     /*后台参数设置:开始、结束组号；电压、电流偏差率*/
-//     {.addr = DWIN_SET_START_GROUP_ADDR, .upper = 7.0F, .lower = 1.0F, .event = (_dwin_func)dwin_data_enrty},
-//     {.addr = DWIN_SET_END_GROUP_ADDR, .upper = 7.0F, .lower = 1.0F, .event = (_dwin_func)dwin_data_enrty},
-//     {.addr = DWIN_SET_VOLTAGE_SHIF, .upper = 100.0F, .lower = 0, .event = (_dwin_func)dwin_data_enrty},
-//     {.addr = DWIN_SET_CURRENT_SHIF, .upper = 100.0F, .lower = 0, .event = (_dwin_func)dwin_data_enrty},
-//     /*按钮响应事件*/
-//     {.addr = DWIN_OPERATE_SHIFT_ADDR, .upper = 0xFFFF, .lower = 0, .event = (_dwin_func)dwin_cur_mode_distinguish},
-//     {.addr = DWIN_START_TEST_ADDR, .upper = 0xFFFF, .lower = 0, .event = (_dwin_func)dwin_start_or_end_test},
-//     {.addr = DWIN_OVERCURRNRT_RESET_ADDR, .upper = 0xFFFF, .lower = 0, .event = (_dwin_func)dwin_overcurrent_reset},
-//     /*WIFI模块参数设置*/
-//     {.addr = DWIN_WIFI_SWITCH_ADDR, .upper = 1, .lower = 0, .event = (_dwin_func)dwin_set_wifi_module_param},
-//     {.addr = DWIN_WIFI_REFACTORY_ADDR, .upper = 1, .lower = 0, .event = (_dwin_func)dwin_set_wifi_module_param},
-//     {.addr = DWIN_WIFI_WORK_MODE_ADDR, .upper = 1, .lower = 0, .event = (_dwin_func)dwin_set_wifi_module_param},
-//     {.addr = DWIN_WIFI_SET_BAUD_ADDR, .upper = 0xFFFF, .lower = 0, .event = (_dwin_func)dwin_set_wifi_module_param},
-//     {.addr = DWIN_WIFI_SET_DATA_BIT_ADDR, .upper = 0xFFFF, .lower = 0, .event = (_dwin_func)dwin_set_wifi_module_param},
-//     {.addr = DWIN_WIFI_SET_STOP_BIT_ADDR, .upper = 0xFFFF, .lower = 0, .event = (_dwin_func)dwin_set_wifi_module_param},
-//     {.addr = DWIN_WIFI_SET_CHECK_BIT_ADDR, .upper = 0xFFFF, .lower = 0, .event = (_dwin_func)dwin_set_wifi_module_param},
-//     {.addr = DWIN_WIFI_DATA_EXPORT_ADDR, .upper = 0xFFFF, .lower = 0, .event = (_dwin_func)dwin_set_wifi_module_param},
-//     /*rtc类处理*/
-//     {.addr = DWIN_SYSTEM_READ_RTC_ADDR, .upper = 0xFFFF, .lower = 0, .event = (_dwin_func)dwin_rtc_handle},
-//     {.addr = DWIN_REQUEST_TIMES_ADDR, .upper = 0xFFFF, .lower = 0, .event = (_dwin_func)dwin_rtc_handle},
-//     {.addr = DWIN_GET_NET_TIMES_ADDR, .upper = 0xFFFF, .lower = 0, .event = (_dwin_func)dwin_rtc_handle},
-//     /*数据操作类处理*/
-//     {.addr = DWIN_USER_DATA_CLEAN_ADDR, .upper = 0xFFFF, .lower = 0, .event = (_dwin_func)dwin_data_handle},
-//     {.addr = DWIN_SAVE_DATA_ADDR, .upper = 0xFFFF, .lower = 0, .event = (_dwin_func)dwin_data_handle},
-//     {.addr = DWIN_SAVE_PARAM_ADDR, .upper = 0xFFFF, .lower = 0, .event = (_dwin_func)dwin_data_handle},
-//     /*系统登录参数设置*/
-//     {.addr = DWIN_USER_NAME_ADDR, .upper = 9999, .lower = 0, .event = (_dwin_func)dwin_password_handle},
-//     {.addr = DWIN_USER_PASSWORD_ADDR, .upper = 9999, .lower = 0, .event = (_dwin_func)dwin_password_handle},
-//     {.addr = DWIN_LOGIN_OPERATE_ADDR, .upper = 0xFFFF, .lower = 0, .event = (_dwin_func)dwin_password_handle},
-//     /*开发者模式*/
-//     {.addr = DWIN_DEVELOPER_MODE_ADDR, .upper = 0xFFFF, .lower = 0, .event = (_dwin_func)dwin_developer_mode},
-// };
+/*迪文响应线程*/
+Event_Map dwin_map[1] = {
+    // /*dds模块参数设置*/
+    {.addr = 0, .upper = 0, .lower = 0, .event = (_dwin_func)0},
+    // {.addr = DWIN_SET_DEVE_FRE_ADDR, .upper = 12.5e6f, .lower = 0, .event = (_dwin_func)dwin_data_enrty},
+    // {.addr = DWIN_SET_FRE_REG_ADDR, .upper = 1.0F, .lower = 0, .event = (_dwin_func)dwin_data_enrty},
+    // {.addr = DWIN_SET_PHASE_ADDR, .upper = 360.0F, .lower = 0, .event = (_dwin_func)dwin_data_enrty},
+    // {.addr = DWIN_SET_PHASE_REG_ADDR, .upper = 1.0F, .lower = 0, .event = (_dwin_func)dwin_data_enrty},
+    // {.addr = DWIN_SET_RANGE_ADDR, .upper = 255.0F, .lower = 0, .event = (_dwin_func)dwin_data_enrty},
+    // {.addr = DWIN_SET_DEVE_WAVE_ADDR, .upper = ad9833_squ, .lower = 0, .event = (_dwin_func)dwin_data_enrty},
+    // /*后台参数设置:开始、结束组号；电压、电流偏差率*/
+    // {.addr = DWIN_SET_START_GROUP_ADDR, .upper = 7.0F, .lower = 1.0F, .event = (_dwin_func)dwin_data_enrty},
+    // {.addr = DWIN_SET_END_GROUP_ADDR, .upper = 7.0F, .lower = 1.0F, .event = (_dwin_func)dwin_data_enrty},
+    // {.addr = DWIN_SET_VOLTAGE_SHIF, .upper = 100.0F, .lower = 0, .event = (_dwin_func)dwin_data_enrty},
+    // {.addr = DWIN_SET_CURRENT_SHIF, .upper = 100.0F, .lower = 0, .event = (_dwin_func)dwin_data_enrty},
+    // /*按钮响应事件*/
+    // {.addr = DWIN_OPERATE_SHIFT_ADDR, .upper = 0xFFFF, .lower = 0, .event = (_dwin_func)dwin_cur_mode_distinguish},
+    // {.addr = DWIN_START_TEST_ADDR, .upper = 0xFFFF, .lower = 0, .event = (_dwin_func)dwin_start_or_end_test},
+    // {.addr = DWIN_OVERCURRNRT_RESET_ADDR, .upper = 0xFFFF, .lower = 0, .event = (_dwin_func)dwin_overcurrent_reset},
+    // /*WIFI模块参数设置*/
+    // {.addr = DWIN_WIFI_SWITCH_ADDR, .upper = 1, .lower = 0, .event = (_dwin_func)dwin_set_wifi_module_param},
+    // {.addr = DWIN_WIFI_REFACTORY_ADDR, .upper = 1, .lower = 0, .event = (_dwin_func)dwin_set_wifi_module_param},
+    // {.addr = DWIN_WIFI_WORK_MODE_ADDR, .upper = 1, .lower = 0, .event = (_dwin_func)dwin_set_wifi_module_param},
+    // {.addr = DWIN_WIFI_SET_BAUD_ADDR, .upper = 0xFFFF, .lower = 0, .event = (_dwin_func)dwin_set_wifi_module_param},
+    // {.addr = DWIN_WIFI_SET_DATA_BIT_ADDR, .upper = 0xFFFF, .lower = 0, .event = (_dwin_func)dwin_set_wifi_module_param},
+    // {.addr = DWIN_WIFI_SET_STOP_BIT_ADDR, .upper = 0xFFFF, .lower = 0, .event = (_dwin_func)dwin_set_wifi_module_param},
+    // {.addr = DWIN_WIFI_SET_CHECK_BIT_ADDR, .upper = 0xFFFF, .lower = 0, .event = (_dwin_func)dwin_set_wifi_module_param},
+    // {.addr = DWIN_WIFI_DATA_EXPORT_ADDR, .upper = 0xFFFF, .lower = 0, .event = (_dwin_func)dwin_set_wifi_module_param},
+    // /*rtc类处理*/
+    // {.addr = DWIN_SYSTEM_READ_RTC_ADDR, .upper = 0xFFFF, .lower = 0, .event = (_dwin_func)dwin_rtc_handle},
+    // {.addr = DWIN_REQUEST_TIMES_ADDR, .upper = 0xFFFF, .lower = 0, .event = (_dwin_func)dwin_rtc_handle},
+    // {.addr = DWIN_GET_NET_TIMES_ADDR, .upper = 0xFFFF, .lower = 0, .event = (_dwin_func)dwin_rtc_handle},
+    // /*数据操作类处理*/
+    // {.addr = DWIN_USER_DATA_CLEAN_ADDR, .upper = 0xFFFF, .lower = 0, .event = (_dwin_func)dwin_data_handle},
+    // {.addr = DWIN_SAVE_DATA_ADDR, .upper = 0xFFFF, .lower = 0, .event = (_dwin_func)dwin_data_handle},
+    // {.addr = DWIN_SAVE_PARAM_ADDR, .upper = 0xFFFF, .lower = 0, .event = (_dwin_func)dwin_data_handle},
+    // /*系统登录参数设置*/
+    // {.addr = DWIN_USER_NAME_ADDR, .upper = 9999, .lower = 0, .event = (_dwin_func)dwin_password_handle},
+    // {.addr = DWIN_USER_PASSWORD_ADDR, .upper = 9999, .lower = 0, .event = (_dwin_func)dwin_password_handle},
+    // {.addr = DWIN_LOGIN_OPERATE_ADDR, .upper = 0xFFFF, .lower = 0, .event = (_dwin_func)dwin_password_handle},
+    // /*开发者模式*/
+    // {.addr = DWIN_DEVELOPER_MODE_ADDR, .upper = 0xFFFF, .lower = 0, .event = (_dwin_func)dwin_developer_mode},
+};
 
-// #define Dwin_EventSize (sizeof(Dwin_ObjMap) / sizeof(Event_Map))
+#define Dwin_EventSize (sizeof(dwin_map) / sizeof(Event_Map))
 
 // /*定义迪文屏幕对象*/
-pDwinHandle Dwin_Object;
+pDwinHandle dwin_object;
 
 /**
  * @brief  通过index得到comm_val_t句柄
@@ -110,7 +110,7 @@ comm_val_t *get_comm_val(uint16_t index)
 //     if (index < STRUCT_VAL_NUM())
 //         return &struct_val_table[index];
 // #undef EX_S
-//     return NULL;
+     return NULL;
 }
 
 // #define __INIT_DWIN_VAL(_adr, _in, _si, _ra)                  \
@@ -118,110 +118,295 @@ comm_val_t *get_comm_val(uint16_t index)
 //         .addr = _adr, .index = _in, .site = _si, .ratio = _ra \
 //     }
 
-// /*定义数据变量绑定表最少是2Byte的整数倍，迪文屏幕地址是16bit*/
-// static dwin_val_glue_t dwin_val_table[] = {
-//     /*dds参数*/
-//     // {.addr = DWIN_SET_USER_FRE_ADDR, .val = &test_object.user_freq, .type = dw_uint16_t, .site = 0x07},
-//     // {.addr = DWIN_SET_DEVE_FRE_ADDR, .val = &test_object.ac.wave_param.frequency, .type = dw_float, .site = 0x07, .ratio = DWIN_PARAM_OFFSET_SIT},
-//     // {.addr = DWIN_SET_FRE_REG_ADDR, .val = &test_object.ac.wave_param.fre_sfr, .type = dw_uint16_t, .site = 0x07},
-//     // {.addr = DWIN_SET_PHASE_ADDR, .val = &test_object.ac.wave_param.phase, .type = dw_uint16_t, .site = 0x07},
-//     // {.addr = DWIN_SET_PHASE_REG_ADDR, .val = &test_object.ac.wave_param.phase_sfr, .type = dw_uint16_t, .site = 0x07},
-//     // {.addr = DWIN_SET_RANGE_ADDR, .val = &test_object.ac.wave_param.range, .type = dw_uint16_t, .site = 0x07},
-//     // {.addr = DWIN_SET_DEVE_WAVE_ADDR, .val = &test_object.ac.wave_param.wave_mode, .type = dw_uint16_t, .site = 0x07},
-//     // /*后台参数设置:开始、结束组号；电压、电流偏差率*/
-//     // {.addr = DWIN_SET_START_GROUP_ADDR, .val = &test_object.cur_group.start, .type = dw_uint16_t, .site = 0x07},
-//     // {.addr = DWIN_SET_END_GROUP_ADDR, .val = &test_object.cur_group.end, .type = dw_uint16_t, .site = 0x07},
-//     // {.addr = DWIN_SET_VOLTAGE_SHIF, .val = &test_object.comm_param.voltage_offset, .type = dw_float, .site = 0x07, .ratio = DWIN_PARAM_OFFSET_SIT},
-//     // {.addr = DWIN_SET_CURRENT_SHIF, .val = &test_object.comm_param.current_offset, .type = dw_float, .site = 0x07, .ratio = DWIN_PARAM_OFFSET_SIT},
+/*定义数据变量绑定表最少是2Byte的整数倍，迪文屏幕地址是16bit*/
+static dwin_val_glue_t dwin_val_table[1] = {
+	{0},
+    /*dds参数*/
+    // {.addr = DWIN_SET_USER_FRE_ADDR, .val = &test_object.user_freq, .type = dw_uint16_t, .site = 0x07},
+    // {.addr = DWIN_SET_DEVE_FRE_ADDR, .val = &test_object.ac.wave_param.frequency, .type = dw_float, .site = 0x07, .ratio = DWIN_PARAM_OFFSET_SIT},
+    // {.addr = DWIN_SET_FRE_REG_ADDR, .val = &test_object.ac.wave_param.fre_sfr, .type = dw_uint16_t, .site = 0x07},
+    // {.addr = DWIN_SET_PHASE_ADDR, .val = &test_object.ac.wave_param.phase, .type = dw_uint16_t, .site = 0x07},
+    // {.addr = DWIN_SET_PHASE_REG_ADDR, .val = &test_object.ac.wave_param.phase_sfr, .type = dw_uint16_t, .site = 0x07},
+    // {.addr = DWIN_SET_RANGE_ADDR, .val = &test_object.ac.wave_param.range, .type = dw_uint16_t, .site = 0x07},
+    // {.addr = DWIN_SET_DEVE_WAVE_ADDR, .val = &test_object.ac.wave_param.wave_mode, .type = dw_uint16_t, .site = 0x07},
+    // /*后台参数设置:开始、结束组号；电压、电流偏差率*/
+    // {.addr = DWIN_SET_START_GROUP_ADDR, .val = &test_object.cur_group.start, .type = dw_uint16_t, .site = 0x07},
+    // {.addr = DWIN_SET_END_GROUP_ADDR, .val = &test_object.cur_group.end, .type = dw_uint16_t, .site = 0x07},
+    // {.addr = DWIN_SET_VOLTAGE_SHIF, .val = &test_object.comm_param.voltage_offset, .type = dw_float, .site = 0x07, .ratio = DWIN_PARAM_OFFSET_SIT},
+    // {.addr = DWIN_SET_CURRENT_SHIF, .val = &test_object.comm_param.current_offset, .type = dw_float, .site = 0x07, .ratio = DWIN_PARAM_OFFSET_SIT},
 
-//     /*dds参数*/
-//     __INIT_DWIN_VAL(DWIN_SET_USER_FRE_ADDR, 0x01, 0x07, 1),
-//     __INIT_DWIN_VAL(DWIN_SET_DEVE_FRE_ADDR, 0x02, 0x07, DWIN_PARAM_OFFSET_SIT),
-//     __INIT_DWIN_VAL(DWIN_SET_FRE_REG_ADDR, 0x03, 0x07, 1),
-//     __INIT_DWIN_VAL(DWIN_SET_PHASE_ADDR, 0x04, 0x07, 1),
-//     __INIT_DWIN_VAL(DWIN_SET_PHASE_REG_ADDR, 0x05, 0x07, 1),
-//     __INIT_DWIN_VAL(DWIN_SET_RANGE_ADDR, 0x06, 0x07, 1),
-//     __INIT_DWIN_VAL(DWIN_SET_DEVE_WAVE_ADDR, 0x07, 0x07, 1),
-//     /*后台参数设置:开始、结束组号；电压、电流偏差率*/
-//     __INIT_DWIN_VAL(DWIN_SET_START_GROUP_ADDR, 0x08, 0x07, 1),
-//     __INIT_DWIN_VAL(DWIN_SET_END_GROUP_ADDR, 0x09, 0x07, 1),
-//     __INIT_DWIN_VAL(DWIN_SET_VOLTAGE_SHIF, 0x0A, 0x07, DWIN_PARAM_OFFSET_SIT),
-//     __INIT_DWIN_VAL(DWIN_SET_CURRENT_SHIF, 0x0B, 0x07, DWIN_PARAM_OFFSET_SIT),
-// };
+    /*dds参数*/
+    // __INIT_DWIN_VAL(DWIN_SET_USER_FRE_ADDR, 0x01, 0x07, 1),
+    // __INIT_DWIN_VAL(DWIN_SET_DEVE_FRE_ADDR, 0x02, 0x07, DWIN_PARAM_OFFSET_SIT),
+    // __INIT_DWIN_VAL(DWIN_SET_FRE_REG_ADDR, 0x03, 0x07, 1),
+    // __INIT_DWIN_VAL(DWIN_SET_PHASE_ADDR, 0x04, 0x07, 1),
+    // __INIT_DWIN_VAL(DWIN_SET_PHASE_REG_ADDR, 0x05, 0x07, 1),
+    // __INIT_DWIN_VAL(DWIN_SET_RANGE_ADDR, 0x06, 0x07, 1),
+    // __INIT_DWIN_VAL(DWIN_SET_DEVE_WAVE_ADDR, 0x07, 0x07, 1),
+    // /*后台参数设置:开始、结束组号；电压、电流偏差率*/
+    // __INIT_DWIN_VAL(DWIN_SET_START_GROUP_ADDR, 0x08, 0x07, 1),
+    // __INIT_DWIN_VAL(DWIN_SET_END_GROUP_ADDR, 0x09, 0x07, 1),
+    // __INIT_DWIN_VAL(DWIN_SET_VOLTAGE_SHIF, 0x0A, 0x07, DWIN_PARAM_OFFSET_SIT),
+    // __INIT_DWIN_VAL(DWIN_SET_CURRENT_SHIF, 0x0B, 0x07, DWIN_PARAM_OFFSET_SIT),
+};
 
-// /**
-//  * @brief  迪文屏幕初始化
-//  * @param  None
-//  * @retval None
-//  */
-// #if (DWIN_USING_RTOS == 2)
-// #if (DWIN_USING_MALLOC)
-// extern DMA_HandleTypeDef hdma_usart2_rx;
-// extern UART_HandleTypeDef huart2;
+/**
+ * @brief	dwin 从机接收回调函数
+ * @details
+ * @param	dev 设备句柄
+ * @param   size 当前尺寸
+ * @retval  None
+ */
+static rt_err_t dwin_rtu_rx_ind(rt_device_t dev, rt_size_t size)
+{
+    pDwinHandle pw = dwin_object;
 
-// int rt_dwin_init(void)
-// {
-//     UartHandle dwin_uart = {
-//         .huart = &huart2,
-//         .phdma = &hdma_usart2_rx,
-// #if (DWIN_USING_RTOS)
-//         .semaphore = NULL,
-// #else
-//         .recive_finish_flag = false,
-// #endif
-//         .tx = {
-//             .wmode = uart_using_dma,
-//             .size = LHC_DWIN_TX_BUF_SIZE,
-//             .count = 0,
-//             .pbuf = NULL,
-//         },
-//         .rx = {
-//             .wmode = uart_using_dma,
-//             .size = LHC_DWIN_RX_BUF_SIZE,
-//             .count = 0,
-//             .pbuf = NULL,
-//         },
-//     };
-//     DwinHandle temp_dwin = {
-//         .Id = 0x00,
-//         .user_val = {
-//             .ptable = dwin_val_table,
-//             .num = sizeof(dwin_val_table) / sizeof(dwin_val_table[0]),
-//         },
-//         .Slave.pMap = Dwin_ObjMap,
-//         .Slave.Events_Size = Dwin_EventSize,
-//         .Uart = dwin_uart,
-//         // .Slave.pHandle = &measure_storage_object,
-//         .Slave.pHandle = &test_object,
-//         .Dw_Delay = (void (*)(uint32_t))rt_thread_mdelay,
-//         .Dw_Transmit = dwin_send,
-//         .Dw_Error = dwin_error_handle,
-//     };
+    if (pw && pw->Uart.semaphore)
+    {
+        pw->Uart.rx.count = size;
+        rt_sem_release((rt_sem_t)pw->Uart.semaphore);
+    }
 
-//     Create_DwinObject(&Dwin_Object, &temp_dwin);
-//     return 0;
-// }
-// /*在内核对象中初始化:https://blog.csdn.net/yang1111111112/article/details/93982354*/
-// // INIT_COMPONENT_EXPORT(rt_dwin_init);
-// // INIT_ENV_EXPORT(rt_dwin_init);
+    return RT_EOK;
+}
+
+/**
+ * @brief	dwin 线程解析接收的数据
+ * @details
+ * @param	parameter:线程初始参数
+ * @retval  None
+ */
+void dwin_recive_thread_entry(void *parameter)
+{
+    pDwinHandle pw = (pDwinHandle)parameter;
+    rt_device_t p_dev = RT_NULL;
+
+    if (pw)
+    {
+        /*确认目标串口设备存在*/
+        p_dev = rt_device_find(LHC_DWIN_DEVICE_NAME);
+        if (p_dev)
+        {
+            // 记录当前设备指针
+            pw->dev = p_dev;
+            rt_device_open(p_dev, RT_DEVICE_FLAG_TX_BLOCKING | RT_DEVICE_FLAG_RX_NON_BLOCKING);
+            /*挂接目标接收中断函数*/
+            rt_device_set_rx_indicate(p_dev, dwin_rtu_rx_ind);
+        }
+        else
+            rt_kprintf("@error: Target device [%s] not found.^_^\r\n", LHC_DWIN_DEVICE_NAME);
+    }
+    for (;;)
+    {
+        /* 永久方式等待信号量*/
+        if (pw->Uart.semaphore &&
+            rt_sem_take(pw->Uart.semaphore, RT_WAITING_FOREVER) == RT_EOK)
+        {
+            rt_device_read(p_dev, 0, pw->Uart.rx.pbuf, pw->Uart.rx.count);
+            lhc_dwin_handler(pw);
+            LOG_D("dwin recive a data.");
+        }
+    }
+}
+
+/**
+ * @brief   定时上报数据到屏幕
+ * @details
+ * @param	parameter:线程初始参数
+ * @retval  None
+ */
+void report_thread_entry(void *parameter)
+{
+    pDwinHandle pw = (pDwinHandle)parameter;
+    
+    // #define VAL_UINT16_T_NUM 22U
+    // #define VAL_FLOAT_NUM 42U
+    // #define BUF_SIE (VAL_UINT16_T_NUM * 2U + VAL_FLOAT_NUM * 4U)
+    //     rt_thread_pools_t *p_rt_thread_pool = (rt_thread_pools_t *)parameter;
+    //     pModbusHandle pd = share_lhc_modbus;
+    //     pDwinHandle pw = Dwin_Object;
+    //     ptest_t pt = &test_object;
+    //     // uint8_t out_coil[32U];
+    //     /*写入小端序，发送大端*/
+    //     uint8_t buf[BUF_SIE] = {
+    //         0x00, 0x00,
+    //         0x00, 0x00,
+    //         0x00, pt->user_freq,
+    //         0x00, pt->ac.wave_param.wave_mode,
+    //         /*wifi start*/
+    //         0x00, 0x00, // wifi模块状态
+    //         0x00, 0x00, // wifi恢复出厂设置按钮
+    //         0x00, 0x02, // wifi模式
+    //         0x00, 0x01, // wifi串口波特率
+    //         0x00, 0x01, // wifi串口数据位
+    //         0x00, 0x00, // wifi串口停止位
+    //         0x00, 0x00, // wifi串口校验位
+    //         0x00, 0x00, // wifi数据导出按钮
+    //         /*wifi end*/
+
+    //         0x00, 0x00, // 通道校正按钮
+    //         0x00, 0x00, // 数据保存按钮
+    //         0x00, 0x00, // 参数保存按钮
+    //         0x00, 0x00, // 网络时间获取按钮
+    //         0x00, 0x00, // 屏幕时间下发0
+    //         0x00, 0x00,
+    //         0x00, 0x00,
+    //         0x00, 0x00, // 屏幕时间下发3
+    //         0x00, 0x00, // 空闲地址
+    //         0x00, 0x00, // 开发者模式按钮
+    //         0x00, pt->ac.wave_param.fre_sfr,
+    //         pt->ac.wave_param.phase >> 8U, pt->ac.wave_param.phase,
+    //         0x00, pt->ac.wave_param.phase_sfr,
+    //         0x00, pt->ac.wave_param.range,
+    //         0x00, pt->cur_group.start,
+    //         0x000, pt->cur_group.end,
+    //         0x00, 0x00
+
+    //     };
+    //     UNUSED(p_rt_thread_pool);
+    //     if (pw)
+    //     {
+    //         rt_thread_mdelay(3000); // 解决首次上电迪文屏幕不接收参数问题
+    //         // pw->Dw_Page(pw, MAIN_PAGE); //切换到登录页面
+    //         // rt_thread_mdelay(10);
+    //         // 系统参数刷新
+    //         pw->Dw_Write(pw, DWIN_OPERATE_SHIFT_ADDR, buf, 28 * sizeof(uint16_t));
+    //         rt_thread_mdelay(50);
+    //         /*主动请求迪文屏幕更新本地RTC时间*/
+    //         pw->Dw_Read(pw, DWIN_SYSTEM_READ_RTC_ADDR, 0x04);
+    //         rt_thread_mdelay(50);
+    //     }
+    for (;;)
+    {
+        // if (pd && pw && pt->pre)
+        // {
+        //     uint16_t buf_16[] = {pt->test_result, pt->cartoon.over_current};
+        //     memset(buf, 0x00, sizeof(buf));
+        //     /*数字输出:32路*/
+        //     form_modbus_get_digital_data_to_buf(pd, Coil, &buf[0], 32U);
+        //     /*获取wifi模块状态*/
+        //     buf[2] |= (get_wifi_state() & 0x03) << 6U;
+        //     //            dbg_raw("\r\nwifi_state:%#x.\r\n", buf[2]);
+        //     swap_16bit_data_to_buf(buf_16, sizeof(buf_16), &buf[4]);
+
+        //     // /*通道判定结果*/
+        //     // buf[5] = pt->test_result;
+        //     // /*过流动画*/
+        //     // buf[7] = pt->cartoon.over_current;
+        //     /*3路模拟输入、1路模拟输出*/
+        //     /*频率*/
+        //     memcpy(&buf[VAL_UINT16_T_NUM * 2U + 4U * sizeof(float)], &pt->ac.wave_param.frequency,
+        //            sizeof(pt->ac.wave_param.frequency));
+        //     /*设置位电压偏差率、电流偏差率*/
+        //     memcpy(&buf[VAL_UINT16_T_NUM * 2U + 5U * sizeof(float)], &pt->comm_param, sizeof(pt->comm_param));
+        //     /*7组32bit采样数据+实际电压电流偏差*/
+        //     memcpy(&buf[VAL_UINT16_T_NUM * 2U + 7U * sizeof(float)], pt->data.p, pt->data.size * sizeof(test_data_t));
+        //     /*4字节数据交换*/
+        //     for (uint8_t i = 0; i < VAL_FLOAT_NUM; ++i)
+        //         endian_swap(&buf[VAL_UINT16_T_NUM * sizeof(uint16_t) + i * sizeof(float)], 0, sizeof(float));
+
+        //     pw->Dw_Write(pw, DWIN_DI_OUTPUT_ADDR, buf, sizeof(buf));
+        // }
+        rt_thread_mdelay(1000);
+    }
+}
+
+/**
+ * @brief  迪文屏幕初始化
+ * @param  None
+ * @retval None
+ */
+#if (LHC_DWIN_USING_RTOS == 2)
+#if (LHC_DWIN_USING_MALLOC)
+int rt_dwin_init(void)
+{
+    rt_sem_t lhc_dwin_sem = RT_NULL;
+
+    lhc_dwin_sem = rt_sem_create("dwin_sem", 0, RT_IPC_FLAG_PRIO);
+    RT_ASSERT(lhc_dwin_sem);
+
+    UartHandle dwin_uart = {
+#if (LHC_DWIN_USING_RTOS)
+        .semaphore = lhc_dwin_sem,
+#else
+        .recive_finish_flag = false,
+#endif
+        .tx = {
+            .wmode = uart_using_dma,
+            .size = LHC_DWIN_TX_BUF_SIZE,
+            .count = 0,
+            .pbuf = NULL,
+        },
+        .rx = {
+            .wmode = uart_using_dma,
+            .size = LHC_DWIN_RX_BUF_SIZE,
+            .count = 0,
+            .pbuf = NULL,
+        },
+    };
+    DwinHandle temp_dwin = {
+        .Id = 0x00,
+        .user_val = {
+            .ptable = dwin_val_table,
+            .num = sizeof(dwin_val_table) / sizeof(dwin_val_table[0]),
+        },
+        .Slave.pMap = dwin_map,
+        .Slave.Events_Size = Dwin_EventSize,
+        .Uart = dwin_uart,
+        // .Slave.pHandle = &measure_storage_object,
+        // .Slave.pHandle = &test_object,
+        .Dw_Delay = (void (*)(uint32_t))rt_thread_mdelay,
+        .Dw_Transmit = dwin_send,
+        .Dw_Error = dwin_error_handle,
+    };
+
+    create_lhc_dwin(&dwin_object, &temp_dwin);
+
+    rt_thread_t tid = rt_thread_create(
+        "dwin",
+        dwin_recive_thread_entry,
+        dwin_object,
+        2048, 0x0F, 20);
+
+    RT_ASSERT(tid != RT_NULL);
+
+    rt_thread_startup(tid);
+
+    tid = rt_thread_create(
+        "report",
+        report_thread_entry,
+        dwin_object,
+        2048, 0x10, 20);
+
+    RT_ASSERT(tid != RT_NULL);
+
+    rt_thread_startup(tid);
+
+    return 0;
+}
+/*在内核对象中初始化:https://blog.csdn.net/yang1111111112/article/details/93982354*/
+// INIT_COMPONENT_EXPORT(rt_dwin_init);
+INIT_ENV_EXPORT(rt_dwin_init);
 // INIT_DEVICE_EXPORT(rt_dwin_init);
-// #else
-// void rt_dwin_init(void)
-// {
-//     Init_Dwin_Object(0);
-//     pDwinHandle pd = Get_Dwin_Object(0);
-//     DwinHandle temp_dwin = {
-//         /*User init info*/
-//     };
-//     Create_DwinObject(&pd, &temp_dwin);
-// }
-// #endif
+#else
+extern DMA_HandleTypeDef hdma_usart1_rx;
+extern UART_HandleTypeDef huart1;
+void rt_dwin_init(void)
+{
+    Init_Dwin_Object(0);
+    pDwinHandle pd = Get_Dwin_Object(0);
+    DwinHandle temp_dwin = {
+        /*User init info*/
+    };
+    create_lhc_dwin(&pd, &temp_dwin);
+}
+#endif
 
-// #else
-// void MX_DwinInit(void)
-// {
-// }
-// #endif
+#else
+void MX_DwinInit(void)
+{
+}
+#endif
 
 // /**
 //  * @brief  迪文屏幕获取目标变量地址
@@ -247,83 +432,88 @@ comm_val_t *get_comm_val(uint16_t index)
 //     return ptarget;
 // }
 
-// /**
-//  * @brief  带CRC的发送数据帧
-//  * @param  pd 迪文屏幕句柄
-//  * @retval None
-//  */
-// static void dwin_send(pDwinHandle pd)
-// {
-// #if (LHC_DWIN_USING_CRC == 1U)
-//     uint16_t crc16 = get_crc16(&dwin_tx_buf[3U], dwin_tx_count(pd) - 3U, 0xffff);
+/**
+ * @brief  带CRC的发送数据帧
+ * @param  pd 迪文屏幕句柄
+ * @retval None
+ */
+static void dwin_send(pDwinHandle pd)
+{
+#if (LHC_DWIN_USING_CRC == 1U)
+    uint16_t crc16 = get_crc16(&lhc_dwin_tx_buf[3U], lhc_dwin_tx_count(pd) - 3U, 0xffff);
 
-//     lhc_tool_memcpy(&dwin_tx_buf[dwin_tx_count(pd)], (uint8_t *)&crc16, sizeof(crc16));
-//     dwin_tx_count(pd) += sizeof(crc16);
-// #endif
+    lhc_tool_memcpy(&lhc_dwin_tx_buf[lhc_dwin_tx_count(pd)], (uint8_t *)&crc16, sizeof(crc16));
+    lhc_dwin_tx_count(pd) += sizeof(crc16);
+#endif
 
-//     switch (pd->Uart.tx.wmode)
-//     {
-//     case uart_using_it:
-//     {
-//         HAL_UART_Transmit((UART_HandleTypeDef *)pd->Uart.huart, dwin_tx_buf, dwin_tx_count(pd), 0xffff);
-//     }
-//     break;
-// #if (LHC_DWIN_USING_DMA)
-//     case uart_using_dma:
-//     {
-//         HAL_UART_Transmit_DMA((UART_HandleTypeDef *)pd->Uart.huart, dwin_tx_buf, dwin_tx_count(pd));
-//         /*https://blog.csdn.net/mickey35/article/details/80186124*/
-//         /*https://blog.csdn.net/qq_40452910/article/details/80022619*/
-//         while (__HAL_UART_GET_FLAG((UART_HandleTypeDef *)pd->Uart.huart, UART_FLAG_TC) == RESET)
-//         {
-//             if (pd->Dw_Delay)
-//                 pd->Dw_Delay(1);
-//         }
-//     }
-//     break;
-// #endif
-//     default:
-//         break;
-//     }
-// }
+#if (LHC_DWIN_USING_RTOS == 2U)
+    RT_ASSERT(pd->dev);
+    rt_device_write(pd->dev, 0, lhc_dwin_tx_buf, lhc_dwin_tx_count(pd));
+#else
+    switch (pd->Uart.tx.wmode)
+    {
+    case uart_using_it:
+    {
+        HAL_UART_Transmit((UART_HandleTypeDef *)pd->Uart.huart, lhc_dwin_tx_buf, lhc_dwin_tx_count(pd), 0xffff);
+    }
+    break;
+#if (LHC_DWIN_USING_DMA)
+    case uart_using_dma:
+    {
+        HAL_UART_Transmit_DMA((UART_HandleTypeDef *)pd->Uart.huart, lhc_dwin_tx_buf, lhc_dwin_tx_count(pd));
+        /*https://blog.csdn.net/mickey35/article/details/80186124*/
+        /*https://blog.csdn.net/qq_40452910/article/details/80022619*/
+        while (__HAL_UART_GET_FLAG((UART_HandleTypeDef *)pd->Uart.huart, UART_FLAG_TC) == RESET)
+        {
+            if (pd->Dw_Delay)
+                pd->Dw_Delay(1);
+        }
+    }
+    break;
+#endif
+    default:
+        break;
+    }
+#endif
+}
 
-// /**
-//  * @brief  迪文屏幕错误处理
-//  * @param  pd 迪文屏幕对象句柄
-//  * @param  err_code 错误代码
-//  * @param  site 当前对象出错位置
-//  * @param  pdata 当前出错数据
-//  * @retval None
-//  */
-// static void dwin_error_handle(pDwinHandle pd,
-//                               dwin_result err_code,
-//                               uint8_t site,
-//                               void *pdata)
-// {
-//     // #define ERROR_NOTE_PAGE 30U
-//     //  TYPEDEF_STRUCT tdata = (error_code == BELOW_LOWER_LIMIT) ? pd->Slave.pMap[site].lower : pd->Slave.pMap[site].upper;
-//     //  uint16_t tarry[] = {0, 0, 0};
-//     // #if (LHC_DWIN_USING_DEBUG)
-//     //  if (error_code == BELOW_LOWER_LIMIT)
-//     //  {
-//     //      LHC_DWIN_DEBUG(Shell_Object, "Error: Below lower limit %.3f.\r\n", tdata);
-//     //  }
-//     //  else
-//     //  {
-//     //      tarry[0] = 0x0100;
-//     //      LHC_DWIN_DEBUG(Shell_Object, "Error: Above upper limit %.3f.\r\n", tdata);
-//     //  }
-//     // #endif
-//     //  Endian_Swap((uint8_t *)&tdata, 0U, sizeof(TYPEDEF_STRUCT));
-//     //  /*设置错误时将显示上下限*/
-//     //  pd->Dw_Write(pd, pd->Slave.pMap[site].addr, (uint8_t *)&tdata, sizeof(TYPEDEF_STRUCT));
-//     //  pd->Dw_Delay(NEXT_DELAT_TIMES);
-//     //  /*切换到提示页面*/
-//     //  pd->Dw_Page(pd, ERROR_NOTE_PAGE);
-//     //  pd->Dw_Delay(NEXT_DELAT_TIMES);
-//     //  lhc_tool_memcpy(&tarry[1], (void *)&tdata, sizeof(tdata));
-//     //  pd->Dw_Write(pd, NOTE_PAGE_ADDR, (uint8_t *)&tarry, sizeof(tarry));
-// }
+/**
+ * @brief  迪文屏幕错误处理
+ * @param  pd 迪文屏幕对象句柄
+ * @param  err_code 错误代码
+ * @param  site 当前对象出错位置
+ * @param  pdata 当前出错数据
+ * @retval None
+ */
+static void dwin_error_handle(pDwinHandle pd,
+                              dwin_result err_code,
+                              uint8_t site,
+                              void *pdata)
+{
+    // #define ERROR_NOTE_PAGE 30U
+    //  TYPEDEF_STRUCT tdata = (error_code == BELOW_LOWER_LIMIT) ? pd->Slave.pMap[site].lower : pd->Slave.pMap[site].upper;
+    //  uint16_t tarry[] = {0, 0, 0};
+    // #if (LHC_DWIN_USING_DEBUG)
+    //  if (error_code == BELOW_LOWER_LIMIT)
+    //  {
+    //      LHC_DWIN_DEBUG(Shell_Object, "Error: Below lower limit %.3f.\r\n", tdata);
+    //  }
+    //  else
+    //  {
+    //      tarry[0] = 0x0100;
+    //      LHC_DWIN_DEBUG(Shell_Object, "Error: Above upper limit %.3f.\r\n", tdata);
+    //  }
+    // #endif
+    //  Endian_Swap((uint8_t *)&tdata, 0U, sizeof(TYPEDEF_STRUCT));
+    //  /*设置错误时将显示上下限*/
+    //  pd->Dw_Write(pd, pd->Slave.pMap[site].addr, (uint8_t *)&tdata, sizeof(TYPEDEF_STRUCT));
+    //  pd->Dw_Delay(NEXT_DELAT_TIMES);
+    //  /*切换到提示页面*/
+    //  pd->Dw_Page(pd, ERROR_NOTE_PAGE);
+    //  pd->Dw_Delay(NEXT_DELAT_TIMES);
+    //  lhc_tool_memcpy(&tarry[1], (void *)&tdata, sizeof(tdata));
+    //  pd->Dw_Write(pd, NOTE_PAGE_ADDR, (uint8_t *)&tarry, sizeof(tarry));
+}
 
 // /**
 //  * @brief  迪文屏幕设置目标类型数据

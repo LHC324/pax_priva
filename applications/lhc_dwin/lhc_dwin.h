@@ -93,8 +93,15 @@ extern "C"
 	struct Dwin_HandleTypeDef
 	{
 		uint8_t Id;
+#if (LHC_DWIN_USING_RTOS == 2U)
+		/*对于rt thread版本，增加一个设备描述指针*/
+		rt_device_t dev, old_console;
+		void *old_rx_indicate;
+#endif
 		void (*Dw_Transmit)(pDwinHandle);
+#if (LHC_DWIN_USING_RTOS == 1U)
 		void (*Dw_Recive)(void *);
+#endif
 		void (*Dw_Write)(pDwinHandle, uint16_t, uint8_t *, uint16_t);
 		void (*Dw_Read)(pDwinHandle, uint16_t, uint8_t);
 		void (*Dw_Page)(pDwinHandle, uint16_t);

@@ -11,7 +11,7 @@ extern "C"
 /*定义外部数字量输入路数*/
 #define EXTERN_IO_DI_MAX 8U
 /*定义外部数字量输出路数*/
-#define EXTERN_IO_DO_MAX 28U
+#define EXTERN_IO_DO_MAX 24U
 /*定义外部模拟量输入路数*/
 #define EXTERN_IO_AI_MAX 11U
 /*定义外部模拟量输入路数*/
@@ -36,7 +36,7 @@ extern "C"
 
     enum lhc_extern_io_flag
     {
-        ex_io_di_roll,
+        ex_io_di_roll = 1,
     } ;
 
 

@@ -25,6 +25,12 @@ extern "C"
 /*迪文屏幕使用RTOS[0:不使用RTOS;1:Freertos;2:rt_thread]*/
 #define LHC_DWIN_USING_RTOS 2 
 
+#if (LHC_DWIN_USING_RTOS == 2)
+// <s>Valid when using rtthread
+//  <i>Device name
+#define LHC_DWIN_DEVICE_NAME "uart1"
+#endif
+
 // <o>Set Dwin Dynamic Memory allocation mode
 //  <i>Default: 1
 //  <0=> Unused

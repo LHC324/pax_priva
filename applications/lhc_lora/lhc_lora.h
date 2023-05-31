@@ -18,12 +18,14 @@ extern "C"
 #define lhc_lora_list_t List_t
 #define lhc_loara_list_item_t ListItem_t
 #elif(TOOL_USING_RTOS == 2)
+#define LHC_LORA_DEVICE_NAME "uart2"
 #define LORA_DEBUG(fmt, ...) rt_kprintf(fmt, ##__VA_ARGS__)
 #define lhc_lora_malloc rt_malloc
 #define lhc_lora_free rt_free
 #define lhc_lora_delay rt_thread_mdelay
 #define lhc_lora_list_init rt_list_init
-#define lhc_lora_list_t struct lora_list_node
+#define lhc_lora_list_t struct lora_list_head//struct lora_list_node
+#define lhc_loara_list_head_t struct lora_list_head
 #define lhc_loara_list_item_t struct lora_list_node
 #endif
 
@@ -100,6 +102,11 @@ extern "C"
     } Lora_State;
 
 #if(TOOL_USING_RTOS == 2)
+    struct lora_list_head
+    {
+        rt_list_t list;
+        rt_list_t *cur_index;
+    };
     struct lora_list_node
     {
         rt_list_t list;
@@ -113,6 +120,11 @@ extern "C"
     {
         /*用于解决lora模块通过shell参数时，模式区分*/
         Lora_Work_Mode Mode;
+#if (TOOL_USING_RTOS == 2)
+        /*对于rt thread版本，增加一个设备描述指针*/
+        rt_device_t dev, old_console;
+        void *old_rx_indicate;
+#endif
         struct
         {
             Lora_State State;        /*当前状态*/
@@ -126,8 +138,7 @@ extern "C"
 #if (TOOL_USING_RTOS == 1)
             List_t *Ready, *Block;
 #elif(TOOL_USING_RTOS == 2)
-            struct lora_list_node Ready, Block;
-            rt_list_t *temp_node;
+            struct lora_list_head Ready, Block;
 #endif
             uint8_t Event_Id;
             uint8_t Period; /*阻塞设备调度周期*/
@@ -151,7 +162,7 @@ extern "C"
     } __attribute__((aligned(4)));
 
     extern pLoraHandle Lora_Object;
-    extern void MX_Lora_Init(void);
+    extern void rt_lora_init(void);
 
 #define Clear_LoraBuffer(__ptr, name)                                     \
     do                                                                    \

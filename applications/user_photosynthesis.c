@@ -229,7 +229,7 @@ static void poto_get_vals(struct potos *poto,
         }
         *data = Get_Target(*data, *arg, *(arg + 1U));
         if (*data < 0.0f)
-            *data = 0.0f;
+            *data = 0;
     }
 }
 
@@ -263,6 +263,40 @@ static uint8_t poto_check_error(struct potos *poto)
 }
 
 /**
+ * @brief	xx统检查是否在启动时间段
+ * @details
+ * @param	s_time start_time
+ * @param   e_time end_time
+ * @retval  0 / -1
+ */
+char xx_system_boot_time_check(uint32_t s_time, uint32_t e_time)
+{
+    struct tm start_time = {0};
+    struct tm end_time = {0};
+    struct tm now_time = {0};
+    time_t now;
+    char res = 0;
+
+    time(&now);
+
+    gmtime_r(&now, &now_time);
+    gmtime_r((time_t *)&s_time, &start_time);
+    gmtime_r((time_t *)&e_time, &end_time);
+
+    // 按时间段启动
+    now_time.tm_hour = Get_Tart_time(now_time.tm_hour, now_time.tm_min, now_time.tm_sec);
+    start_time.tm_hour = Get_Tart_time(start_time.tm_hour, start_time.tm_min, start_time.tm_sec);
+    end_time.tm_hour = Get_Tart_time(end_time.tm_hour, end_time.tm_min, end_time.tm_sec);
+
+    // 不在允许启动时间段
+    if (!distingulsh_times_slot(now_time.tm_hour, start_time.tm_hour, end_time.tm_hour))
+        res = -1;
+
+    return res;  
+}
+
+
+/**
  * @brief	光合作用系统获取启动信号
  * @details
  * @param	None
@@ -273,10 +307,6 @@ uint8_t poto_get_boot_signal(struct potos *poto,
                              uint8_t *coil,
                              uint8_t size)
 {
-    struct tm start_time = {0};
-    struct tm end_time = {0};
-    struct tm now_time = {0};
-    time_t now;
     uint16_t sbit = 0;
 
     //汽化器温度小于临界值
@@ -284,20 +314,8 @@ uint8_t poto_get_boot_signal(struct potos *poto,
         poto->user.f_val[gas_heat] < poto->arg.f[gas_heat_limit])
         return 0;
 
-    // get_timestamp(&now);
-    time(&now);
-
-    gmtime_r(&now, &now_time);
-    gmtime_r((time_t *)&poto->arg.start_time, &start_time);
-    gmtime_r((time_t *)&poto->arg.end_time, &end_time);
-
-    // 按时间段启动
-    now_time.tm_hour = now_time.tm_hour << 8U | now_time.tm_min;
-    start_time.tm_hour = start_time.tm_hour << 8U | start_time.tm_min;
-    end_time.tm_hour = end_time.tm_hour << 8U | end_time.tm_min;
-
     // 不在允许启动时间段
-    if (!distingulsh_times_slot(now_time.tm_hour, start_time.tm_hour, end_time.tm_hour))
+    if (xx_system_boot_time_check(poto->arg.start_time, poto->arg.end_time))
         return 0;
 
     if (poto->arg.flag.signal) // 信号由内部系统产生
@@ -322,19 +340,18 @@ uint8_t poto_get_boot_signal(struct potos *poto,
  * @param	None
  * @retval  none
  */
-void poto_control(void)
+static void poto_control(void)
 {
     struct potos *poto = &poto_system;
-    pModbusHandle pd = Lte_Modbus_Object;
+    pModbusHandle pd = share_lhc_modbus;
     float tank_pre = poto_get_pre(poto, poto->arg.flag.tank, m_tank_pre, s_tank_pre);
     float vap_pre = poto_get_pre(poto, poto->arg.flag.vap, m_vap_pre, s_vap_pre);
 
     RT_ASSERT(pd);
 
-    memset(poto_coil, 0x00, sizeof(poto_coil));
+    memset(poto_coil, DIRC_COIL, sizeof(poto_coil));
 
     if (poto->flag.debug) // 处于调试模式，不执行系统逻辑
-        // goto __no_action;
         return;
 
     poto_get_vals(poto, pd);    // 信号转换
@@ -346,7 +363,7 @@ void poto_control(void)
         goto __no_action;
     }
 
-    if (poto_get_boot_signal(poto, pd, poto_coil, 12U)) // 最大支持12个用户棚
+    if (poto_get_boot_signal(poto, pd, poto_coil, poto->arg.support_max)) // 最大支持12个用户棚
     {
         poto_start_mode(poto, tank_pre, vap_pre, poto_coil);
     }
@@ -355,5 +372,44 @@ void poto_control(void)
 
 __no_action:
     pd->Mod_Operatex(pd, Coil, lhc_modbus_write, poto->arg.pool.do_des.base_addr,
-                     poto_coil, sizeof(poto_coil));
+                     poto_coil, poto->arg.pool.do_des.num); //sizeof(poto_coil)
 }
+
+/**
+ * @brief   光合作用系统线程
+ * @details
+ * @param	parameter:线程初始参数
+ * @retval  None
+ */
+void photosynthesis_thread_entry(void *parameter)
+{
+    for (;;)
+    {
+        poto_control();
+        rt_thread_mdelay(1000);
+    }
+}
+
+/**
+ * @brief	光合作用系统初始化
+ * @details
+ * @param	None
+ * @retval  none
+ */
+static int poto_init(void)
+{
+    rt_thread_t tid = rt_thread_create(
+        "photosynthesis",
+        photosynthesis_thread_entry,
+        RT_NULL,
+        1024, 0x11, 20);
+
+    RT_ASSERT(tid != RT_NULL);
+
+    rt_thread_startup(tid);
+
+    rt_kprintf("photosynthesis system init.\r\n");
+    
+    return (RT_EOK);
+}
+// INIT_APP_EXPORT(poto_init);

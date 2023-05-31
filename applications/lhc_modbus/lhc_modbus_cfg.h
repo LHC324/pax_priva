@@ -23,9 +23,9 @@ extern "C"
 //  <1=> Freertos
 //  <2=> rt_thread
 /*small_modbus使用RTOS[0:不使用RTOS;1:Freertos;2:rt_thread]*/
-#define LHC_MODBUS_RTOS 2
+#define LHC_MODBUS_USING_RTOS 2
 
-#if (LHC_MODBUS_RTOS == 2)
+#if (LHC_MODBUS_USING_RTOS == 2)
 // <s>Valid when using rtthread
 //  <i>Device name
 #define LHC_MODBUS_DEVICE_NAME "uart1"
@@ -140,9 +140,9 @@ extern "C"
 // <<< end of configuration section >>>
 
 /*包含对应操作系统接口:tool.h中包含对应api*/
-#if (LHC_MODBUS_RTOS == 1)
+#if (LHC_MODBUS_USING_RTOS == 1)
 
-#elif (LHC_MODBUS_RTOS == 2)
+#elif (LHC_MODBUS_USING_RTOS == 2)
 
 #else
 

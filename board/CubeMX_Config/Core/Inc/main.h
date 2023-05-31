@@ -80,8 +80,8 @@ void Error_Handler(void);
 #define DI5_Pin GPIO_PIN_6
 #define DI5_GPIO_Port GPIOE
 #define DI5_EXTI_IRQn EXTI9_5_IRQn
-#define WDI_Pin GPIO_PIN_8
-#define WDI_GPIO_Port GPIOE
+#define RUN_LED_Pin GPIO_PIN_13
+#define RUN_LED_GPIO_Port GPIOC
 #define Q22_Pin GPIO_PIN_12
 #define Q22_GPIO_Port GPIOE
 #define Q21_Pin GPIO_PIN_13
@@ -134,6 +134,8 @@ void Error_Handler(void);
 #define LTE_NET_GPIO_Port GPIOD
 #define LTE_RELOAD_Pin GPIO_PIN_1
 #define LTE_RELOAD_GPIO_Port GPIOD
+#define WDI_Pin GPIO_PIN_3
+#define WDI_GPIO_Port GPIOD
 #define LORA_STATUS_Pin GPIO_PIN_4
 #define LORA_STATUS_GPIO_Port GPIOD
 #define LORA_WAKEUP_Pin GPIO_PIN_7

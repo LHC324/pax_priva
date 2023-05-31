@@ -35,11 +35,10 @@
     };
 
 /*定义Modbus对象*/
-// pModbusHandle Cpu_Modbus_Object;
-pModbusHandle Lte_Modbus_Object;
-pModbusHandle Wifi_Modbus_Object;
+pModbusHandle lte_modbus_object;
+pModbusHandle eth_modbus_object;
 pModbusHandle modbus_console_handle = RT_NULL;
-static ModbusPools Spool;
+static ModbusPools lhc_modbus_spool;
 /* 指向互斥量的指针 */
 static rt_mutex_t modbus_mutex = RT_NULL;
 rt_sem_t  console_sem = RT_NULL;
@@ -47,20 +46,146 @@ rt_sem_t  console_sem = RT_NULL;
 static void Modbus_CallBack(pModbusHandle pd, Function_Code code);
 static void lhc_console_transfer(pModbusHandle pd);
 static void Modbus_ErrorHadle(pModbusHandle pd, Lhc_Modbus_State_Code error_code);
-#if (LHC_MODBUS_RTOS)
+#if (LHC_MODBUS_USING_RTOS)
 static void Modbus_Lock(void);
 static void Modbus_UnLock(void);
 #endif
 static void Modbus_Send(pModbusHandle pd, enum Using_Crc crc);
 
-#if (LHC_MODBUS_RTOS == 2)
+#if (LHC_MODBUS_USING_RTOS == 1)
+extern DMA_HandleTypeDef hdma_usart3_rx;
+extern UART_HandleTypeDef huart3;
+extern DMA_HandleTypeDef hdma_uart4_rx;
+extern UART_HandleTypeDef huart4;
+#endif
+
+#if (LHC_MODBUS_USING_RTOS == 2)
 #if (LHC_MODBUS_USING_MALLOC)
-extern DMA_HandleTypeDef hdma_usart1_rx;
-extern UART_HandleTypeDef huart1;
-extern DMA_HandleTypeDef hdma_usart2_rx;
-extern UART_HandleTypeDef huart2;
-// extern DMA_HandleTypeDef hdma_uart3_rx;
-// extern UART_HandleTypeDef huart3;
+/**
+ * @brief	lte modbus 从机接收回调函数
+ * @details
+ * @param	dev 设备句柄
+ * @param   size 当前尺寸
+ * @retval  None
+ */
+static rt_err_t lte_modbus_rtu_rx_ind(rt_device_t dev, rt_size_t size)
+{
+    pModbusHandle pd = lte_modbus_object;
+
+    if (pd && pd->Uart.semaphore)
+    {
+        pd->Uart.rx.count = size;
+        rt_sem_release((rt_sem_t)pd->Uart.semaphore);
+    }
+
+    return RT_EOK;
+}
+
+/**
+ * @brief	lte modbus 从机接收线程
+ * @details rt thread V1和V2串口驱动说明：https://club.rt-thread.org/ask/article/8e1d18464219fae7.html
+ * @param	parameter:线程初始参数
+ * @retval  None
+ */
+void lte_modbus_thread_entry(void *parameter)
+{
+#ifdef LHC_MODBUS_DEVICE_NAME
+#undef LHC_MODBUS_DEVICE_NAME
+#define LHC_MODBUS_DEVICE_NAME "uart4"
+#endif
+    pModbusHandle pd = (pModbusHandle)parameter;
+    rt_device_t p_dev = RT_NULL;
+
+    RT_ASSERT(pd);
+
+    /*确认目标串口设备存在*/
+    p_dev = rt_device_find(LHC_MODBUS_DEVICE_NAME);
+    if (p_dev)
+    {
+        // 记录当前设备指针if (RT_NULL == pd->dev)
+        pd->dev = p_dev;
+        rt_device_open(p_dev, RT_DEVICE_FLAG_TX_BLOCKING | RT_DEVICE_FLAG_RX_NON_BLOCKING);
+        /*挂接目标接收中断函数*/
+        rt_device_set_rx_indicate(p_dev, lte_modbus_rtu_rx_ind);
+    }
+    else
+        rt_kprintf("@error: Target device [%s] not found.^_^\r\n", LHC_MODBUS_DEVICE_NAME);
+
+    for (;;)
+    {
+        /* 永久方式等待信号量，获取到信号量则解析modbus协议*/
+        if (pd->Uart.semaphore &&
+            rt_sem_take(pd->Uart.semaphore, RT_WAITING_FOREVER) == RT_EOK)
+        {
+            rt_device_read(p_dev, 0, pd->Uart.rx.pbuf, pd->Uart.rx.count);
+            lhc_modbus_handler(lte_modbus_object);
+            LOG_D("lte lhc modbus recive a data.");
+        }
+    }
+}
+
+/**
+ * @brief	eth modbus 从机接收回调函数
+ * @details
+ * @param	dev 设备句柄
+ * @param   size 当前尺寸
+ * @retval  None
+ */
+static rt_err_t eth_modbus_rtu_rx_ind(rt_device_t dev, rt_size_t size)
+{
+    pModbusHandle pd = eth_modbus_object;
+
+    if (pd && pd->Uart.semaphore)
+    {
+        pd->Uart.rx.count = size;
+        rt_sem_release((rt_sem_t)pd->Uart.semaphore);
+    }
+
+    return RT_EOK;
+}
+
+/**
+ * @brief	eth modbus 从机接收线程
+ * @details rt thread V1和V2串口驱动说明：https://club.rt-thread.org/ask/article/8e1d18464219fae7.html
+ * @param	parameter:线程初始参数
+ * @retval  None
+ */
+void eth_modbus_thread_entry(void *parameter)
+{
+#ifdef LHC_MODBUS_DEVICE_NAME
+#undef LHC_MODBUS_DEVICE_NAME
+#define LHC_MODBUS_DEVICE_NAME "uart3"
+#endif
+    pModbusHandle pd = (pModbusHandle)parameter;
+    rt_device_t p_dev = RT_NULL;
+
+    RT_ASSERT(pd);
+
+    /*确认目标串口设备存在*/
+    p_dev = rt_device_find(LHC_MODBUS_DEVICE_NAME);
+    if (p_dev)
+    {
+        // 记录当前设备指针if (RT_NULL == pd->dev)
+        pd->dev = p_dev;
+        rt_device_open(p_dev, RT_DEVICE_FLAG_TX_BLOCKING | RT_DEVICE_FLAG_RX_NON_BLOCKING);
+        /*挂接目标接收中断函数*/
+        rt_device_set_rx_indicate(p_dev, eth_modbus_rtu_rx_ind);
+    }
+    else
+        rt_kprintf("@error: Target device [%s] not found.^_^\r\n", LHC_MODBUS_DEVICE_NAME);
+
+    for (;;)
+    {
+        /* 永久方式等待信号量，获取到信号量则解析modbus协议*/
+        if (pd->Uart.semaphore &&
+            rt_sem_take(pd->Uart.semaphore, RT_WAITING_FOREVER) == RT_EOK)
+        {
+            rt_device_read(p_dev, 0, pd->Uart.rx.pbuf, pd->Uart.rx.count);
+            lhc_modbus_handler(eth_modbus_object);
+            LOG_D("eth lhc modbus recive a data.");
+        }
+    }
+}
 
 /**
  * @brief  初始化Modbus协议库
@@ -68,16 +193,26 @@ extern UART_HandleTypeDef huart2;
  */
 int rt_lhc_modbus_init(void)
 {
+    rt_sem_t  lte_lhc_modbus_sem = RT_NULL;
+    rt_sem_t  eth_lhc_modbus_sem = RT_NULL;
     /* 创建一个动态互斥量 */
     modbus_mutex = rt_mutex_create("modbus_mutex", RT_IPC_FLAG_PRIO);
+    RT_ASSERT(modbus_mutex);
     /* 创建控制信号量 */
     console_sem = rt_sem_create("console_sem", 0, RT_IPC_FLAG_FIFO);//RT_IPC_FLAG_PRIO
-/*-------------------------------------------------------------------*/
+    RT_ASSERT(console_sem);
+    lte_lhc_modbus_sem = rt_sem_create("lte_sem", 0, RT_IPC_FLAG_PRIO);
+    RT_ASSERT(lte_lhc_modbus_sem);
+    eth_lhc_modbus_sem = rt_sem_create("eth_sem", 0, RT_IPC_FLAG_PRIO);
+    RT_ASSERT(eth_lhc_modbus_sem);
+    /*-------------------------------------------------------------------*/
     UartHandle lte_lhc_modbus_uart = {
-        .huart = &huart2,
-        .phdma = &hdma_usart2_rx,
-#if (LHC_MODBUS_RTOS)
-        .semaphore = NULL,
+#if (LHC_MODBUS_USING_RTOS == 1U)
+        .huart = &huart4,
+        .phdma = &hdma_uart4_rx,
+#endif
+#if (LHC_MODBUS_USING_RTOS)
+        .semaphore = lte_lhc_modbus_sem,
 #else
         .recive_finish_flag = false,
 #endif
@@ -96,19 +231,31 @@ int rt_lhc_modbus_init(void)
     };
     __init_modbus(lte, lhc_modbus_Slave, LHC_MODBUS_MASTER_ADDR, 0x02,
                   Modbus_CallBack, Modbus_Lock, Modbus_UnLock, lhc_console_transfer, Modbus_ErrorHadle,
-                  Modbus_Send, lte_lhc_modbus_uart, Spool, NULL);
-#if (LHC_MODBUS_RTOS == 2U)
+                  Modbus_Send, lte_lhc_modbus_uart, lhc_modbus_spool, NULL);
+#if (LHC_MODBUS_USING_RTOS == 2U)
     lte_lhc_modbus.dev = NULL;
     lte_lhc_modbus.old_console = NULL;
 #endif
-    create_lhc_modbus(&Lte_Modbus_Object, &lte_lhc_modbus);
+    create_lhc_modbus(&lte_modbus_object, &lte_lhc_modbus);
 
-/*-------------------------------------------------------------------*/
-    UartHandle wifi_lhc_modbus_uart = {
-        .huart = &huart2,
-        .phdma = &hdma_usart2_rx,
-#if (LHC_MODBUS_RTOS)
-        .semaphore = NULL,
+    rt_thread_t tid = rt_thread_create(
+        "lte_modbus",
+        lte_modbus_thread_entry,
+        lte_modbus_object,
+        1024, 0x0D, 20);
+
+    RT_ASSERT(tid != RT_NULL);
+
+    rt_thread_startup(tid);
+
+    /*-------------------------------------------------------------------*/
+    UartHandle eth_lhc_modbus_uart = {
+#if (LHC_MODBUS_USING_RTOS == 1U)
+        .huart = &huart3,
+        .phdma = &hdma_usart3_rx,
+#endif
+#if (LHC_MODBUS_USING_RTOS)
+        .semaphore = eth_lhc_modbus_sem,
 #else
         .recive_finish_flag = false,
 #endif
@@ -125,14 +272,24 @@ int rt_lhc_modbus_init(void)
             .pbuf = NULL,
         },
     };
-    __init_modbus(wifi, lhc_modbus_Slave, LHC_MODBUS_MASTER_ADDR, 0x03,
+    __init_modbus(eth, lhc_modbus_Slave, LHC_MODBUS_MASTER_ADDR, 0x03,
                   Modbus_CallBack, Modbus_Lock, Modbus_UnLock, lhc_console_transfer, Modbus_ErrorHadle,
-                  Modbus_Send, wifi_lhc_modbus_uart, Spool, NULL);
-#if (LHC_MODBUS_RTOS == 2U)
-    wifi_lhc_modbus.dev = NULL;
-    wifi_lhc_modbus.old_console = NULL;
+                  Modbus_Send, eth_lhc_modbus_uart, lhc_modbus_spool, NULL);
+#if (LHC_MODBUS_USING_RTOS == 2U)
+    eth_lhc_modbus.dev = NULL;
+    eth_lhc_modbus.old_console = NULL;
 #endif
-    create_lhc_modbus(&Wifi_Modbus_Object, &wifi_lhc_modbus);
+    create_lhc_modbus(&eth_modbus_object, &eth_lhc_modbus);
+
+    tid = rt_thread_create(
+        "eth_modbus",
+        eth_modbus_thread_entry,
+        eth_modbus_object,
+        1024, 0x0D, 20);
+
+    RT_ASSERT(tid != RT_NULL);
+
+    rt_thread_startup(tid);
 
     return 0;
 }
@@ -183,7 +340,7 @@ static void Modbus_CallBack(pModbusHandle pd, Function_Code code)
 {
 }
 
-#if (LHC_MODBUS_RTOS)
+#if (LHC_MODBUS_USING_RTOS)
 /**
  * @brief  modbus协议栈加锁函数
  * @param  pd 需要初始化对象指针
@@ -216,19 +373,13 @@ static void lhc_console_transfer(pModbusHandle pd)
 {
     extern void finsh_set_device(const char *device_name);
     rt_err_t ret = RT_EOK;
-    if (NULL == pd || NULL == pd->Uart.huart ||
-        NULL == pd->dev)
-        return;
+
+    RT_ASSERT(pd);
+    RT_ASSERT(pd->dev);
     /*@note 
             基于稳定性考虑，底板cpu暂时不支持finsh
             finsh设备底层适配RS485手动切换“DIR”不方便，需要修改源码
     */
-    // if(Cpu_Modbus_Object == pd)
-    // {
-    //     LHC_MODBUS_DEBUG_R("The main CPU modbus does not support finsh transfer.");
-    //     return;
-    // }
-
     pd->old_rx_indicate = pd->dev->rx_indicate; //备份接收完成通知(串口关闭前)
     ret = rt_device_close(pd->dev);
     if ((RT_EOK == ret) && (RT_EOK == rt_sem_trytake(console_sem)))
@@ -275,7 +426,7 @@ static void Modbus_ErrorHadle(pModbusHandle pd, Lhc_Modbus_State_Code error_code
  */
 static void Modbus_Send(pModbusHandle pd, enum Using_Crc crc)
 {
-#if (LHC_MODBUS_RTOS == 2U)
+#if (LHC_MODBUS_USING_RTOS == 2U)
     if (NULL == pd || NULL == pd->dev)
 #else
     if (NULL == pd || NULL == pd->Uart.huart)
@@ -291,7 +442,8 @@ static void Modbus_Send(pModbusHandle pd, enum Using_Crc crc)
     }
     if ((pd->Uart.tx.wmode & uart_using_rs485) && pd->Uart.rs485->port)
         HAL_GPIO_WritePin(pd->Uart.rs485->port, pd->Uart.rs485->pin, GPIO_PIN_SET);
-#if (LHC_MODBUS_RTOS == 2U)
+#if (LHC_MODBUS_USING_RTOS == 2U)
+    RT_ASSERT(pd->dev);
     rt_device_write(pd->dev, 0, lhc_modbus_tx_buf, lhc_modbus_tx_count(pd));
 #else
     switch (pd->Uart.tx.wmode)

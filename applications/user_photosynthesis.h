@@ -5,7 +5,7 @@
  *
  * Change Logs:
  * Date           Author       Notes
- * 2022-09-15     LHC       the first version
+ * 2023-05-23     LHC       the first version
  */
 #ifndef _INC_USER_PHOTOSYNTHESIS_H_
 #define _INC_USER_PHOTOSYNTHESIS_H_
@@ -136,6 +136,7 @@ extern "C"
     {
         uint32_t start_time;
         uint32_t end_time;
+        uint32_t support_max; //最大支持的用户棚数
         struct
         {
             uint32_t signal : 1; // 信号来源：1内部；0外部

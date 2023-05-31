@@ -1,0 +1,14 @@
+[INIT]
+PICFIX=1
+VARCount=64
+Version=-1
+SCREENDSIZE=800X480
+SPADDRESS=5000
+[IMG]
+00=00_屏保.bmp
+01=01_主界面.bmp
+02=02_登录界面.bmp
+03=03_光合作用系统.bmp
+04=04_气候界面.bmp
+05=05_肥料.bmp
+06=06_灌溉.bmp

@@ -338,7 +338,7 @@
               <MiscControls></MiscControls>
               <Define>__STDC_LIMIT_MACROS, LFS_CONFIG=lfs_config.h, STM32F103xE, USE_HAL_DRIVER, RT_USING_LIBC, __CLK_TCK=RT_TICK_PER_SECOND, __RTTHREAD__, RT_USING_ARM_LIBC</Define>
               <Undefine></Undefine>
-              <IncludePath>board;rt-thread\components\drivers\include;applications\lhc_modbus;packages\quick_led-latest\inc;board\CubeMX_Config\Core\Inc;applications\lhc_lora;rt-thread\components\drivers\usb\usbdevice;packages\minIni-latest\dev;rt-thread\components\dfs\include;rt-thread\components\libc\posix\io\poll;rt-thread\components\utilities\ulog;packages\ota_downloader-latest;rt-thread\components\libc\compilers\common\extension\fcntl\octal;rt-thread\components\drivers\include;rt-thread\components\libc\posix\io\stdio;applications;rt-thread\libcpu\arm\cortex-m3;applications\lhc_dwin;libraries\HAL_Drivers;rt-thread\components\finsh;applications\lhc_module;packages\Qfplib_M3-latest;rt-thread\components\drivers\include;rt-thread\components\libc\compilers\common\extension;applications\lhc_tools;rt-thread\components\drivers\include;packages\littlefs-latest;libraries\STM32F1xx_HAL\CMSIS\Device\ST\STM32F1xx\Include;rt-thread\components\utilities\ymodem;libraries\HAL_Drivers\CMSIS\Include;packages\CmBacktrace-v1.4.1;rt-thread\components\drivers\include;rt-thread\components\libc\posix\ipc;rt-thread\components\net\at\include;libraries\HAL_Drivers\drv_flash;rt-thread\libcpu\arm\common;rt-thread\components\drivers\include;.;rt-thread\components\libc\compilers\common\include;rt-thread\include;libraries\STM32F1xx_HAL\STM32F1xx_HAL_Driver\Inc;rt-thread\components\fal\inc;libraries\HAL_Drivers\config</IncludePath>
+              <IncludePath>board;rt-thread\components\drivers\include;applications\lhc_modbus;packages\quick_led-latest\inc;board\CubeMX_Config\Core\Inc;applications\lhc_lora;packages\minIni-latest\dev;rt-thread\components\dfs\include;rt-thread\components\libc\posix\io\poll;rt-thread\components\utilities\ulog;packages\ota_downloader-latest;rt-thread\components\libc\compilers\common\extension\fcntl\octal;rt-thread\components\drivers\include;rt-thread\components\libc\posix\io\stdio;applications;rt-thread\libcpu\arm\cortex-m3;applications\lhc_dwin;libraries\HAL_Drivers;rt-thread\components\finsh;applications\lhc_module;packages\Qfplib_M3-latest;rt-thread\components\drivers\include;rt-thread\components\libc\compilers\common\extension;applications\lhc_tools;rt-thread\components\drivers\include;packages\littlefs-latest;libraries\STM32F1xx_HAL\CMSIS\Device\ST\STM32F1xx\Include;rt-thread\components\utilities\ymodem;libraries\HAL_Drivers\CMSIS\Include;packages\CmBacktrace-v1.4.1;rt-thread\components\drivers\include;rt-thread\components\libc\posix\ipc;rt-thread\components\net\at\include;libraries\HAL_Drivers\drv_flash;rt-thread\libcpu\arm\common;rt-thread\components\drivers\include;.;rt-thread\components\libc\compilers\common\include;rt-thread\include;libraries\STM32F1xx_HAL\STM32F1xx_HAL_Driver\Inc;rt-thread\components\fal\inc;libraries\HAL_Drivers\config</IncludePath>
             </VariousControls>
           </Cads>
           <Aads>
@@ -383,24 +383,9 @@
           <GroupName>Applications</GroupName>
           <Files>
             <File>
-              <FileName>user_climate.c</FileName>
-              <FileType>1</FileType>
-              <FilePath>applications\user_climate.c</FilePath>
-            </File>
-            <File>
-              <FileName>user_at.c</FileName>
-              <FileType>1</FileType>
-              <FilePath>applications\user_at.c</FilePath>
-            </File>
-            <File>
               <FileName>user_water_room.c</FileName>
               <FileType>1</FileType>
               <FilePath>applications\user_water_room.c</FilePath>
-            </File>
-            <File>
-              <FileName>main.c</FileName>
-              <FileType>1</FileType>
-              <FilePath>applications\main.c</FilePath>
             </File>
             <File>
               <FileName>user_photosynthesis.c</FileName>
@@ -412,16 +397,26 @@
               <FileType>1</FileType>
               <FilePath>applications\user_file.c</FilePath>
             </File>
+            <File>
+              <FileName>user_climate.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>applications\user_climate.c</FilePath>
+            </File>
+            <File>
+              <FileName>main.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>applications\main.c</FilePath>
+            </File>
+            <File>
+              <FileName>user_at.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>applications\user_at.c</FilePath>
+            </File>
           </Files>
         </Group>
         <Group>
           <GroupName>AT</GroupName>
           <Files>
-            <File>
-              <FileName>at_client.c</FileName>
-              <FileType>1</FileType>
-              <FilePath>rt-thread\components\net\at\src\at_client.c</FilePath>
-            </File>
             <File>
               <FileName>at_utils.c</FileName>
               <FileType>1</FileType>
@@ -432,11 +427,21 @@
               <FileType>1</FileType>
               <FilePath>rt-thread\components\net\at\src\at_cli.c</FilePath>
             </File>
+            <File>
+              <FileName>at_client.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>rt-thread\components\net\at\src\at_client.c</FilePath>
+            </File>
           </Files>
         </Group>
         <Group>
           <GroupName>cm_backtrace</GroupName>
           <Files>
+            <File>
+              <FileName>cm_backtrace.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>packages\CmBacktrace-v1.4.1\cm_backtrace.c</FilePath>
+            </File>
             <File>
               <FileName>cmb_port.c</FileName>
               <FileType>1</FileType>
@@ -446,11 +451,6 @@
               <FileName>cmb_flash_log.c</FileName>
               <FileType>1</FileType>
               <FilePath>packages\CmBacktrace-v1.4.1\cmb_flash_log.c</FilePath>
-            </File>
-            <File>
-              <FileName>cm_backtrace.c</FileName>
-              <FileType>1</FileType>
-              <FilePath>packages\CmBacktrace-v1.4.1\cm_backtrace.c</FilePath>
             </File>
           </Files>
         </Group>
@@ -593,6 +593,11 @@
               <FilePath>rt-thread\components\drivers\rtc\rtc.c</FilePath>
             </File>
             <File>
+              <FileName>soft_rtc.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>rt-thread\components\drivers\rtc\soft_rtc.c</FilePath>
+            </File>
+            <File>
               <FileName>serial_v2.c</FileName>
               <FileType>1</FileType>
               <FilePath>rt-thread\components\drivers\serial\serial_v2.c</FilePath>
@@ -648,9 +653,9 @@
           <GroupName>Fal</GroupName>
           <Files>
             <File>
-              <FileName>fal.c</FileName>
+              <FileName>fal_flash.c</FileName>
               <FileType>1</FileType>
-              <FilePath>rt-thread\components\fal\src\fal.c</FilePath>
+              <FilePath>rt-thread\components\fal\src\fal_flash.c</FilePath>
             </File>
             <File>
               <FileName>fal_partition.c</FileName>
@@ -658,14 +663,14 @@
               <FilePath>rt-thread\components\fal\src\fal_partition.c</FilePath>
             </File>
             <File>
+              <FileName>fal.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>rt-thread\components\fal\src\fal.c</FilePath>
+            </File>
+            <File>
               <FileName>fal_rtt.c</FileName>
               <FileType>1</FileType>
               <FilePath>rt-thread\components\fal\src\fal_rtt.c</FilePath>
-            </File>
-            <File>
-              <FileName>fal_flash.c</FileName>
-              <FileType>1</FileType>
-              <FilePath>rt-thread\components\fal\src\fal_flash.c</FilePath>
             </File>
           </Files>
         </Group>
@@ -828,14 +833,14 @@
           <GroupName>lhc_modbus</GroupName>
           <Files>
             <File>
-              <FileName>lhc_modbus.c</FileName>
-              <FileType>1</FileType>
-              <FilePath>applications\lhc_modbus\lhc_modbus.c</FilePath>
-            </File>
-            <File>
               <FileName>lhc_modbus_port.c</FileName>
               <FileType>1</FileType>
               <FilePath>applications\lhc_modbus\lhc_modbus_port.c</FilePath>
+            </File>
+            <File>
+              <FileName>lhc_modbus.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>applications\lhc_modbus\lhc_modbus.c</FilePath>
             </File>
           </Files>
         </Group>
@@ -883,11 +888,6 @@
               <FilePath>libraries\STM32F1xx_HAL\CMSIS\Device\ST\STM32F1xx\Source\Templates\system_stm32f1xx.c</FilePath>
             </File>
             <File>
-              <FileName>stm32f1xx_ll_usb.c</FileName>
-              <FileType>1</FileType>
-              <FilePath>libraries\STM32F1xx_HAL\STM32F1xx_HAL_Driver\Src\stm32f1xx_ll_usb.c</FilePath>
-            </File>
-            <File>
               <FileName>stm32f1xx_hal_cec.c</FileName>
               <FileType>1</FileType>
               <FilePath>libraries\STM32F1xx_HAL\STM32F1xx_HAL_Driver\Src\stm32f1xx_hal_cec.c</FilePath>
@@ -916,11 +916,6 @@
               <FileName>stm32f1xx_hal_rcc_ex.c</FileName>
               <FileType>1</FileType>
               <FilePath>libraries\STM32F1xx_HAL\STM32F1xx_HAL_Driver\Src\stm32f1xx_hal_rcc_ex.c</FilePath>
-            </File>
-            <File>
-              <FileName>stm32f1xx_hal_pcd_ex.c</FileName>
-              <FileType>1</FileType>
-              <FilePath>libraries\STM32F1xx_HAL\STM32F1xx_HAL_Driver\Src\stm32f1xx_hal_pcd_ex.c</FilePath>
             </File>
             <File>
               <FileName>stm32f1xx_hal_rtc.c</FileName>
@@ -988,11 +983,6 @@
               <FilePath>libraries\STM32F1xx_HAL\STM32F1xx_HAL_Driver\Src\stm32f1xx_hal_dma.c</FilePath>
             </File>
             <File>
-              <FileName>stm32f1xx_hal_pcd.c</FileName>
-              <FileType>1</FileType>
-              <FilePath>libraries\STM32F1xx_HAL\STM32F1xx_HAL_Driver\Src\stm32f1xx_hal_pcd.c</FilePath>
-            </File>
-            <File>
               <FileName>stm32f1xx_hal_flash.c</FileName>
               <FileType>1</FileType>
               <FilePath>libraries\STM32F1xx_HAL\STM32F1xx_HAL_Driver\Src\stm32f1xx_hal_flash.c</FilePath>
@@ -1002,26 +992,11 @@
               <FileType>1</FileType>
               <FilePath>libraries\STM32F1xx_HAL\STM32F1xx_HAL_Driver\Src\stm32f1xx_hal_flash_ex.c</FilePath>
             </File>
-            <File>
-              <FileName>stm32f1xx_hal_hcd.c</FileName>
-              <FileType>1</FileType>
-              <FilePath>libraries\STM32F1xx_HAL\STM32F1xx_HAL_Driver\Src\stm32f1xx_hal_hcd.c</FilePath>
-            </File>
           </Files>
         </Group>
         <Group>
           <GroupName>littlefs</GroupName>
           <Files>
-            <File>
-              <FileName>dfs_lfs.c</FileName>
-              <FileType>1</FileType>
-              <FilePath>packages\littlefs-latest\dfs_lfs.c</FilePath>
-            </File>
-            <File>
-              <FileName>lfs_crc.c</FileName>
-              <FileType>1</FileType>
-              <FilePath>packages\littlefs-latest\lfs_crc.c</FilePath>
-            </File>
             <File>
               <FileName>lfs.c</FileName>
               <FileType>1</FileType>
@@ -1031,6 +1006,16 @@
               <FileName>lfs_util.c</FileName>
               <FileType>1</FileType>
               <FilePath>packages\littlefs-latest\lfs_util.c</FilePath>
+            </File>
+            <File>
+              <FileName>lfs_crc.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>packages\littlefs-latest\lfs_crc.c</FilePath>
+            </File>
+            <File>
+              <FileName>dfs_lfs.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>packages\littlefs-latest\dfs_lfs.c</FilePath>
             </File>
           </Files>
         </Group>
@@ -1058,14 +1043,14 @@
           <GroupName>quick_led</GroupName>
           <Files>
             <File>
-              <FileName>qled.c</FileName>
-              <FileType>1</FileType>
-              <FilePath>packages\quick_led-latest\src\qled.c</FilePath>
-            </File>
-            <File>
               <FileName>qled_sample.c</FileName>
               <FileType>1</FileType>
               <FilePath>packages\quick_led-latest\src\qled_sample.c</FilePath>
+            </File>
+            <File>
+              <FileName>qled.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>packages\quick_led-latest\src\qled.c</FilePath>
             </File>
           </Files>
         </Group>
@@ -1076,26 +1061,6 @@
               <FileName>rt_vsnprintf.c</FileName>
               <FileType>1</FileType>
               <FilePath>packages\rt_vsnprintf_full-latest\rt_vsnprintf.c</FilePath>
-            </File>
-          </Files>
-        </Group>
-        <Group>
-          <GroupName>rt_usbd</GroupName>
-          <Files>
-            <File>
-              <FileName>usbdevice_core.c</FileName>
-              <FileType>1</FileType>
-              <FilePath>rt-thread\components\drivers\usb\usbdevice\core\usbdevice_core.c</FilePath>
-            </File>
-            <File>
-              <FileName>usbdevice.c</FileName>
-              <FileType>1</FileType>
-              <FilePath>rt-thread\components\drivers\usb\usbdevice\core\usbdevice.c</FilePath>
-            </File>
-            <File>
-              <FileName>cdc_vcom.c</FileName>
-              <FileType>1</FileType>
-              <FilePath>rt-thread\components\drivers\usb\usbdevice\class\cdc_vcom.c</FilePath>
             </File>
           </Files>
         </Group>

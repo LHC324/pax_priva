@@ -55,10 +55,12 @@ void create_lhc_dwin(pDwinHandle *pd, pDwinHandle ps)
 	(*pd)->Id = ps->Id;
 	(*pd)->Dw_Transmit = ps->Dw_Transmit;
 #if (LHC_DWIN_USING_DMA)
+#if (LHC_DWIN_USING_RTOS == 1U)
 #if (TOOL_USING_STM32HAL)
 	(*pd)->Dw_Recive = (void (*)(void *))uartx_recive_handle;
 #else
 	(*pd)->Dw_Recive = Dw_Recive;
+#endif
 #endif
 #endif
 	(*pd)->Dw_Delay = ps->Dw_Delay;
